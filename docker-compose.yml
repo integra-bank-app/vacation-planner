@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: parola
+      POSTGRES_DB: vacation-planner-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - mydbdata:/var/lib/postgres/data
+
+volumes:
+  mydbdata:
