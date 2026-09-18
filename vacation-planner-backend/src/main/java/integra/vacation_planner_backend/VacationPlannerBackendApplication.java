@@ -8,9 +8,5 @@ public class VacationPlannerBackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(VacationPlannerBackendApplication.class, args);
-
-
-
 	}
-
 }
