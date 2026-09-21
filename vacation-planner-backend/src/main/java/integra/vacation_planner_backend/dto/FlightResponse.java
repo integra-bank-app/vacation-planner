@@ -1,6 +1,7 @@
 package integra.vacation_planner_backend.dto;
 import java.time.ZonedDateTime;
-//backend->client
+//backend get->client
+
 public class FlightResponse {
 
     private String flightNumber;

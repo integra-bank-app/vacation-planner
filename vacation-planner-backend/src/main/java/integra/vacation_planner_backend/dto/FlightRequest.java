@@ -2,7 +2,8 @@ package integra.vacation_planner_backend.dto;
 import java.time.Instant;
 
 public class FlightRequest {
-//campurile cerute de post/put-> backend
+
+// post/put-> backend
     private String flightNumber;
     private String departureAirportCode;
     private String arrivalAirportCode;
@@ -20,8 +21,7 @@ public class FlightRequest {
     public String getDepartureAirportCode() {
         return departureAirportCode;
     }
-    public void setDepartureAirportCode(String departureAirportCode) {
-        this.departureAirportCode = departureAirportCode;}
+    public void setDepartureAirportCode(String departureAirportCode) {this.departureAirportCode = departureAirportCode;}
 
     public String getArrivalAirportCode() {
         return arrivalAirportCode;
@@ -44,9 +44,7 @@ public class FlightRequest {
         this.arrivalTime = arrivalTime;
     }
 
-    public Integer getNumberOfSeats() {
-        return numberOfSeats;
-    }
+    public Integer getNumberOfSeats() {return numberOfSeats;}
     public void setNumberOfSeats(Integer numberOfSeats) {
         this.numberOfSeats = numberOfSeats;
     }

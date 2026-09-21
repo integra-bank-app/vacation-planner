@@ -28,8 +28,9 @@ public class Flight {
     @Column(nullable = false)
     private Integer numberOfSeats;
 
-    public Flight() {}
+    public Flight() {} // default constructor
 
+    //getters and setters
     public Long getId() {
         return id;
     }
@@ -47,8 +48,7 @@ public class Flight {
     public String getDepartureAirportCode() {
         return departureAirportCode;
     }
-    public void setDepartureAirportCode(String departureAirportCode) {
-        this.departureAirportCode = departureAirportCode;}
+    public void setDepartureAirportCode(String departureAirportCode) {this.departureAirportCode = departureAirportCode;}
 
     public String getArrivalAirportCode() {
         return arrivalAirportCode;
