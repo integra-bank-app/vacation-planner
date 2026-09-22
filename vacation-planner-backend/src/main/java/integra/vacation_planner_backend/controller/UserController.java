@@ -1,5 +1,7 @@
 package integra.vacation_planner_backend.controller;
 
+import integra.vacation_planner_backend.dto.UserRegisterRequestDTO;
+import integra.vacation_planner_backend.dto.UserResponseDTO;
 import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -13,23 +15,44 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 public class UserController {
+
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<UUID> register(@RequestBody User user){
+    public ResponseEntity<UUID> register(@RequestBody UserRegisterRequestDTO request) {
         try {
-            UUID registeredUserId = userService.register(user);
-            return ResponseEntity.ok(registeredUserId);
-        } catch (IllegalArgumentException validationException){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, validationException.getMessage());
+            UUID userId = userService.register(
+                    request.getUsername(),
+                    request.getEmail(),
+                    request.getFirstName(),
+                    request.getLastName()
+            );
+            return ResponseEntity.ok(userId);
+
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("exists")) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+            } else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+            }
         }
     }
-    @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestParam String username){
+
+    @GetMapping("/login")
+    public ResponseEntity<UserResponseDTO> login(@RequestParam String username) {
         try {
-            User authenticatedUser = userService.login(username);
-            return ResponseEntity.ok(authenticatedUser);
-        }catch (IllegalArgumentException notFoundException){
+            User user = userService.login(username);
+            UserResponseDTO response = new UserResponseDTO(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getFirstName(),
+                    user.getLastName()
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
     }
