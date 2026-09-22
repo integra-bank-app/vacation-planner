@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.annotation.processing.Generated;
 import java.util.UUID;
 
 @Getter
@@ -16,12 +15,11 @@ import java.util.UUID;
 public class User {
     @Id
     @GeneratedValue
-    @Column(updatable = false, nullable = false)
+    @Column(updatable = false, nullable = false, unique = true)
     private UUID id;
 
     @Column(updatable = false, nullable = false)
     private String username;
-
 
     @Column(unique = true, nullable = false)
     private String email;
