@@ -1,0 +1,27 @@
+package integra.DTO;
+
+import integra.entity.Restaurant;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.time.LocalTime;
+import java.util.UUID;
+
+@Getter
+@AllArgsConstructor
+public class RestaurantDTO {
+    private final UUID id;
+    private final String name;
+    private final String address;
+    private final LocalTime openingHour;
+    private final LocalTime closingHour;
+    private final Double rating = 5.0;
+
+    public RestaurantDTO(Restaurant restaurant) {
+        this.id = restaurant.getId();
+        this.name = restaurant.getName();
+        this.address = restaurant.getAddress();
+        this.openingHour = restaurant.getOpeningHour();
+        this.closingHour = restaurant.getClosingHour();
+    }
+}
