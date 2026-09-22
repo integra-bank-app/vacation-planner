@@ -20,7 +20,7 @@ public class UserService {
         if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+        if (!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
             throw new IllegalArgumentException("Format email invalid");
         }
         if (userRepository.existsByEmail(email)) {
