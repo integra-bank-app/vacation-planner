@@ -1,11 +1,16 @@
 package integra.vacation_planner_backend.model;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.time.Instant;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
-@Table(name = "flights")  //belongs to the table created in Flyway
+@Table(name = "flights")
 public class Flight {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,61 +25,10 @@ public class Flight {
     private String arrivalAirportCode;
 
     @Column(nullable = false)
-    private Instant departureTime; //for UTC timing
-
+    private Instant departureTime;
     @Column(nullable = false)
     private Instant arrivalTime;
 
     @Column(nullable = false)
     private Integer numberOfSeats;
-
-    public Flight() {} // default constructor
-
-    //getters and setters
-    public Long getId() {
-        return id;
-    }
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getFlightNumber() {
-        return flightNumber;
-    }
-    public void setFlightNumber(String flightNumber) {
-        this.flightNumber = flightNumber;
-    }
-
-    public String getDepartureAirportCode() {
-        return departureAirportCode;
-    }
-    public void setDepartureAirportCode(String departureAirportCode) {this.departureAirportCode = departureAirportCode;}
-
-    public String getArrivalAirportCode() {
-        return arrivalAirportCode;
-    }
-    public void setArrivalAirportCode(String arrivalAirportCode) {
-        this.arrivalAirportCode = arrivalAirportCode;
-    }
-
-    public Instant getDepartureTime() {
-        return departureTime;
-    }
-    public void setDepartureTime(Instant departureTime) {
-        this.departureTime = departureTime;
-    }
-
-    public Instant getArrivalTime() {
-        return arrivalTime;
-    }
-    public void setArrivalTime(Instant arrivalTime) {
-        this.arrivalTime = arrivalTime;
-    }
-
-    public Integer getNumberOfSeats() {
-        return numberOfSeats;
-    }
-    public void setNumberOfSeats(Integer numberOfSeats) {
-        this.numberOfSeats = numberOfSeats;
-    }
 }

@@ -8,10 +8,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/flights")
-
 public class FlightController {
-
     private final FlightService flightService;
+
     public FlightController(FlightService flightService) {
         this.flightService = flightService;
     }
@@ -27,7 +26,11 @@ public class FlightController {
     }
 
     @GetMapping
-    public List<FlightResponse> getFlights(@RequestParam String airportCode) {return flightService.getFlights(airportCode);}
-
+    public List<FlightResponse> getFlights(@RequestParam String airportCode) {
+        return flightService.getFlights(airportCode);
+    }
     @DeleteMapping
-    public void deleteFlight(@RequestParam String flightNumber) {flightService.deleteFlight(flightNumber);}}
+    public void deleteFlight(@RequestParam String flightNumber) {
+        flightService.deleteFlight(flightNumber);
+    }
+}

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface FlightRepository extends JpaRepository<Flight, Long> {
-
-    Optional<Flight> findByFlightNumber(String flightNumber); //may not exist
-    List<Flight> findByDepartureAirportCodeOrArrivalAirportCode(String departureAirportCode, String arrivalAirportCode);//from/to
+    Optional<Flight> findByFlightNumber(String flightNumber);
+    List<Flight> findByDepartureAirportCodeOrArrivalAirportCode(String departureAirportCode, String arrivalAirportCode);
 }
