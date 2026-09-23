@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
+// used by restaurant service to return restaurants data
 public class RestaurantDTO {
     private final UUID id;
     private final String name;

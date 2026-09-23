@@ -23,6 +23,7 @@ public class RestaurantService {
             if (restaurantRepository.findById(id).isPresent()) {
                 continue;
             }
+            // TODO validate data
             Restaurant restaurant = new Restaurant(id, name, address, openingHour, closingHour);
             restaurantRepository.save(restaurant);
             return id;
@@ -34,6 +35,7 @@ public class RestaurantService {
         return restaurantRepository.findAll();
     }
 
+    // fixme implement a better way to check the address
     public List<RestaurantDTO> getRestaurantsByCity(String city) {
         // search for restaurants whose address contains the given city
         String query = "%" + city + "%";
