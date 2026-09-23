@@ -1,4 +1,4 @@
-package integra.entity;
+package integra.vacation_planner_backend.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

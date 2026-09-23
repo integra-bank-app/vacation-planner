@@ -1,10 +1,9 @@
-package integra.service;
+package integra.vacation_planner_backend.service;
 
-import integra.DTO.RestaurantDTO;
-import integra.entity.Restaurant;
-import integra.repository.RestaurantRepository;
+import integra.vacation_planner_backend.DTO.RestaurantDTO;
+import integra.vacation_planner_backend.entity.Restaurant;
+import integra.vacation_planner_backend.repository.RestaurantRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.data.repository.core.support.RepositoryMethodInvocationListener;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
@@ -15,10 +14,9 @@ import java.util.UUID;
 @Service
 @AllArgsConstructor
 public class RestaurantService {
-    private final RepositoryMethodInvocationListener repositoryMethodInvocationListener;
     private RestaurantRepository restaurantRepository;
 
-    UUID createRestaurant(String name, String address, LocalTime openingHour, LocalTime closingHour) {
+    public UUID createRestaurant(String name, String address, LocalTime openingHour, LocalTime closingHour) {
         // try to use a random ID 100 times
         for (int i = 1; i <= 100; i++) {
             UUID id = UUID.randomUUID();
@@ -32,11 +30,11 @@ public class RestaurantService {
         throw new RestaurantServiceException("could not find an id for the new restaurant");
     }
 
-    List<Restaurant> getAllRestaurants() {
+    public List<Restaurant> getAllRestaurants() {
         return restaurantRepository.findAll();
     }
 
-    List<RestaurantDTO> getRestaurantsByCity(String city) {
+    public List<RestaurantDTO> getRestaurantsByCity(String city) {
         // search for restaurants whose address contains the given city
         String query = "%" + city + "%";
         List<Restaurant> restaurants = restaurantRepository.getRestaurantsByAddressLike(query);
@@ -48,7 +46,7 @@ public class RestaurantService {
         return result;
     }
 
-    void updateRestaurant(UUID id, String address, LocalTime openingHour, LocalTime closingHour) {
+    public void updateRestaurant(UUID id, String address, LocalTime openingHour, LocalTime closingHour) {
         if (restaurantRepository.findById(id).isEmpty()) {
             throw new RestaurantServiceException("no restaurant with that id exists");
         }
@@ -66,7 +64,7 @@ public class RestaurantService {
         restaurantRepository.save(restaurant);
     }
 
-    void deleteRestaurant(UUID id) {
+    public void deleteRestaurant(UUID id) {
         if (restaurantRepository.findById(id).isEmpty()) {
             throw new RestaurantServiceException("could not find a restaurant with that id");
         }

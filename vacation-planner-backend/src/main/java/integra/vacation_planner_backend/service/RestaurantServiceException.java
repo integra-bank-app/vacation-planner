@@ -1,4 +1,4 @@
-package integra.service;
+package integra.vacation_planner_backend.service;
 
 public class RestaurantServiceException extends RuntimeException {
     public RestaurantServiceException(String message) {

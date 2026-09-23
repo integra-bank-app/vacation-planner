@@ -1,6 +1,6 @@
-package integra.DTO;
+package integra.vacation_planner_backend.DTO;
 
-import integra.entity.Restaurant;
+import integra.vacation_planner_backend.entity.Restaurant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
