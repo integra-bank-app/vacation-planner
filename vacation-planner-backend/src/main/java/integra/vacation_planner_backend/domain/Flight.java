@@ -1,4 +1,4 @@
-package integra.domain.model;
+package integra.vacation_planner_backend.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

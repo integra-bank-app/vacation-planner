@@ -1,4 +1,4 @@
-package integra.domain.config;
+package integra.vacation_planner_backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,8 +1,8 @@
-package integra.domain.controller;
-import integra.domain.dto.FlightRequest;
-import integra.domain.dto.FlightResponse;
-import integra.domain.model.Flight;
-import integra.domain.service.FlightService;
+package integra.vacation_planner_backend.controller;
+import integra.vacation_planner_backend.dto.FlightRequest;
+import integra.vacation_planner_backend.dto.FlightResponse;
+import integra.vacation_planner_backend.domain.Flight;
+import integra.vacation_planner_backend.service.FlightService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 

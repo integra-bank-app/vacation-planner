@@ -1,4 +1,4 @@
-package integra.domain.dto;
+package integra.vacation_planner_backend.dto;
 import java.time.ZonedDateTime;
 
 public record FlightResponse(
