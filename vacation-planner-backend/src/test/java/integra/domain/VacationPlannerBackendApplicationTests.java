@@ -1,4 +1,4 @@
-package integra.vacation_planner_backend;
+package integra.domain;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

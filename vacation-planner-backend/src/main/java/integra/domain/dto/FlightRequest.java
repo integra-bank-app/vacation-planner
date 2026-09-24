@@ -1,4 +1,4 @@
-package integra.vacation_planner_backend.dto;
+package integra.domain.dto;
 import java.time.Instant;
 
 public record FlightRequest(

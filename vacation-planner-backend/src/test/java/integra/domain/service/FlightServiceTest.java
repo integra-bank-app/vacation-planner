@@ -1,10 +1,10 @@
-package integra.vacation_planner_backend.service;
-import integra.vacation_planner_backend.dto.FlightRequest;
-import integra.vacation_planner_backend.exception.ConflictException;
-import integra.vacation_planner_backend.exception.NotFoundException;
-import integra.vacation_planner_backend.exception.ValidationException;
-import integra.vacation_planner_backend.model.Flight;
-import integra.vacation_planner_backend.repository.FlightRepository;
+package integra.domain.service;
+import integra.domain.dto.FlightRequest;
+import integra.domain.exception.ConflictException;
+import integra.domain.exception.NotFoundException;
+import integra.domain.exception.ValidationException;
+import integra.domain.model.Flight;
+import integra.domain.repository.FlightRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

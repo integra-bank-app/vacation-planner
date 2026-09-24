@@ -1,5 +1,5 @@
-package integra.vacation_planner_backend.repository;
-import integra.vacation_planner_backend.model.Flight;
+package integra.domain.repository;
+import integra.domain.model.Flight;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;

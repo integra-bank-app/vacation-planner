@@ -1,4 +1,4 @@
-package integra.vacation_planner_backend;
+package integra.domain;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

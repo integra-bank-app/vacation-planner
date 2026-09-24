@@ -1,8 +1,8 @@
-package integra.vacation_planner_backend.controller;
-import integra.vacation_planner_backend.dto.FlightRequest;
-import integra.vacation_planner_backend.dto.FlightResponse;
-import integra.vacation_planner_backend.model.Flight;
-import integra.vacation_planner_backend.service.FlightService;
+package integra.domain.controller;
+import integra.domain.dto.FlightRequest;
+import integra.domain.dto.FlightResponse;
+import integra.domain.model.Flight;
+import integra.domain.service.FlightService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,8 +35,9 @@ class FlightControllerTest {
         mockMvc.perform(post("/flights")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(flightJson(180)))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.flightNumber").value("W43381"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.flightNumber").value("W43381"));
+
         verify(flightService).createFlight(any(FlightRequest.class));
     }
 
@@ -49,8 +50,8 @@ class FlightControllerTest {
                 Instant.parse("2026-10-10T08:00:00Z").atZone(ZoneId.systemDefault()),
                 Instant.parse("2026-10-10T10:00:00Z").atZone(ZoneId.systemDefault())
         );
-
         when(flightService.getFlights("CLJ")).thenReturn(List.of(response));
+
         mockMvc.perform(get("/flights").param("airportCode", "CLJ"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].flightNumber").value("W43381"))
@@ -65,9 +66,9 @@ class FlightControllerTest {
         mockMvc.perform(put("/flights")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(flightJson(200)))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.flightNumber").value("W43381"))
-                        .andExpect(jsonPath("$.numberOfSeats").value(200));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.flightNumber").value("W43381"))
+                .andExpect(jsonPath("$.numberOfSeats").value(200));
         verify(flightService).updateFlight(any(FlightRequest.class));
     }
 
@@ -77,6 +78,7 @@ class FlightControllerTest {
                 .andExpect(status().isOk());
         verify(flightService).deleteFlight("W43381");
     }
+
     private Flight flight(Integer seats) {
         Flight flight = new Flight();
         flight.setFlightNumber("W43381");
@@ -87,6 +89,7 @@ class FlightControllerTest {
         flight.setNumberOfSeats(seats);
         return flight;
     }
+
     private String flightJson(Integer seats) {
         return """
                 {
