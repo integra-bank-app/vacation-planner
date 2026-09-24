@@ -1,6 +1,6 @@
 package integra.vacation_planner_backend.repository;
 
-import integra.vacation_planner_backend.entity.Restaurant;
+import integra.vacation_planner_backend.domain.Restaurant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
