@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -12,8 +13,8 @@ import java.time.Instant;
 @Table(name = "flights")
 public class Flight {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false, unique = true)
     private String flightNumber;
