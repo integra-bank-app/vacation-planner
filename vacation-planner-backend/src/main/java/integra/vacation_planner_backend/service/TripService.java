@@ -1,8 +1,10 @@
-package integra.vacation_planner_backend.trip;
+package integra.vacation_planner_backend.service;
 
-import integra.vacation_planner_backend.trip.TripRepository;
-import integra.vacation_planner_backend.trip.exception.TripNotFoundException;
-import integra.vacation_planner_backend.trip.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.exception.TripNotFoundException;
+import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -42,9 +44,6 @@ public class TripService {
         if (username.isBlank()) {
             throw new IllegalArgumentException("username is required");
         }
-//        if (startDate == null || endDate == null) {
-//            throw new IllegalArgumentException("startDate and endDate are required");
-//        }
 
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("startDate must be before endDate");

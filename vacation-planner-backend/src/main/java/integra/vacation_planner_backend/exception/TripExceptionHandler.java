@@ -1,6 +1,6 @@
-package integra.vacation_planner_backend.trip.exception;
+package integra.vacation_planner_backend.exception;
 
-import integra.vacation_planner_backend.trip.TripController;
+import integra.vacation_planner_backend.controller.TripController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

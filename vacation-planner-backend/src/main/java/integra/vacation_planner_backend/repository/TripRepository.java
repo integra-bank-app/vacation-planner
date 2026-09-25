@@ -1,5 +1,6 @@
-package integra.vacation_planner_backend.trip;
+package integra.vacation_planner_backend.repository;
 
+import integra.vacation_planner_backend.domain.Trip;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;

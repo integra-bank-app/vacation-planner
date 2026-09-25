@@ -1,5 +1,8 @@
-package integra.vacation_planner_backend.trip;
+package integra.vacation_planner_backend.controller;
 
+import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.service.TripService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;

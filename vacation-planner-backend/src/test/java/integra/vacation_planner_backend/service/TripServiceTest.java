@@ -1,7 +1,10 @@
-package integra.vacation_planner_backend.trip;
+package integra.vacation_planner_backend.service;
 
-import integra.vacation_planner_backend.trip.exception.TripNotFoundException;
-import integra.vacation_planner_backend.trip.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.exception.TripNotFoundException;
+import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
