@@ -1,9 +1,14 @@
-package integra.vacation_planner_backend.accommodation;
+package integra.vacation_planner_backend.controller;
 
+import integra.vacation_planner_backend.dto.AccommodationRequest;
+import integra.vacation_planner_backend.dto.AccommodationResponse;
+import integra.vacation_planner_backend.service.AccommodationService;
+import integra.vacation_planner_backend.dto.UpdatePriceRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/accommodations")
@@ -16,27 +21,27 @@ public class AccommodationController {
     }
 
     @PostMapping
-    public ResponseEntity<Long> create(
+    public ResponseEntity<UUID> create(
             @RequestBody AccommodationRequest request
     ) {
-        Long id = service.create(request);
+        UUID id = service.create(request);
 
         return ResponseEntity.ok(id);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Void> updatePrice(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestBody UpdatePriceRequest request
     ) {
-        service.updatePrice(id, request.getPricePerNight());
+        service.updatePrice(id, request.pricePerNight());
 
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @PathVariable Long id
+            @PathVariable UUID id
     ) {
         service.delete(id);
 

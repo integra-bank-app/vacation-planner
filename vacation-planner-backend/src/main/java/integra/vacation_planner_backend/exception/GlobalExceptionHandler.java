@@ -1,4 +1,4 @@
-package integra.vacation_planner_backend.accommodation;
+package integra.vacation_planner_backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
