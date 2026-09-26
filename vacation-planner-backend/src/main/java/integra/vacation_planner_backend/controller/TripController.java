@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/trips")
@@ -19,7 +20,7 @@ public class TripController {
     }
 
     @PostMapping
-    public Long createTrip( @RequestBody TripDTO dto) {
+    public UUID createTrip(@RequestBody TripDTO dto) {
         return tripService.createTrip(dto);
     }
 
@@ -33,12 +34,12 @@ public class TripController {
     }
 
     @PutMapping("/{tripId}")
-    public void updateTrip(@PathVariable Long tripId, @RequestBody TripDTO dto) {
+    public void updateTrip(@PathVariable UUID tripId, @RequestBody TripDTO dto) {
         tripService.updateTrip(tripId, dto);
     }
 
     @DeleteMapping("/{tripId}")
-    public void deleteTrip(@PathVariable Long tripId, @RequestParam String username) {
+    public void deleteTrip(@PathVariable UUID tripId, @RequestParam String username) {
         tripService.deleteTrip(tripId, username);
     }
 }

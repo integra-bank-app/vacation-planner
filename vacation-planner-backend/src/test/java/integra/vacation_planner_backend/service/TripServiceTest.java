@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 
 public class TripServiceTest {
 
@@ -27,7 +27,7 @@ public class TripServiceTest {
         tripService = new TripService(tripRepository);
     }
 
-/// TESTS FOR CREATE
+    // TESTS FOR CREATE
 
     @Test
     void createTrip_shouldCreateTrip() {
@@ -38,19 +38,20 @@ public class TripServiceTest {
         dto.setStartDate(LocalDate.of(2026, 6, 10));
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
+        UUID tripId = UUID.randomUUID();
+
         Trip savedTrip = new Trip();
-        savedTrip.setId(1L);
+        savedTrip.setId(tripId);
 
         when(tripRepository.save(any(Trip.class)))
                 .thenReturn(savedTrip);
 
-        Long result = tripService.createTrip(dto);
+        UUID result = tripService.createTrip(dto);
 
-        assertEquals(1L, result);
+        assertEquals(tripId, result);
 
         verify(tripRepository).save(any(Trip.class));
     }
-
 
     @Test
     void createTrip_shouldRejectMissingUsername() {
@@ -67,7 +68,6 @@ public class TripServiceTest {
 
         verify(tripRepository, never()).save(any(Trip.class));
     }
-
 
     @Test
     void createTrip_shouldRejectBlankUsername() {
@@ -86,7 +86,6 @@ public class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-
     @Test
     void createTrip_shouldRejectMissingDestination() {
         TripDTO dto = new TripDTO();
@@ -102,7 +101,6 @@ public class TripServiceTest {
 
         verify(tripRepository, never()).save(any(Trip.class));
     }
-
 
     @Test
     void createTrip_shouldRejectBlankDestination() {
@@ -121,7 +119,6 @@ public class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-
     @Test
     void createTrip_shouldRejectMissingStartDate() {
         TripDTO dto = new TripDTO();
@@ -138,7 +135,6 @@ public class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-
     @Test
     void createTrip_shouldRejectMissingEndDate() {
         TripDTO dto = new TripDTO();
@@ -154,8 +150,6 @@ public class TripServiceTest {
 
         verify(tripRepository, never()).save(any(Trip.class));
     }
-
-
 
     @Test
     void createTrip_shouldRejectInvalidDates() {
@@ -174,9 +168,7 @@ public class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-
-/// TESTS FOR GET TRIPS
-
+    // TESTS FOR GET TRIPS
 
     @Test
     void getTripsBetweenDates_shouldReturnTrips() {
@@ -184,7 +176,7 @@ public class TripServiceTest {
         LocalDate to = LocalDate.of(2026, 6, 30);
 
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(UUID.randomUUID());
         trip.setUsername("bob");
         trip.setDestination("Paris");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
@@ -206,9 +198,6 @@ public class TripServiceTest {
                         "bob", from, to);
     }
 
-
-
-
     @Test
     void getTripsBetweenDates_shouldRejectBlankUsername() {
         LocalDate from = LocalDate.of(2026, 6, 1);
@@ -224,8 +213,6 @@ public class TripServiceTest {
                         anyString(), any(LocalDate.class), any(LocalDate.class));
     }
 
-
-
     @Test
     void getTripsBetweenDates_shouldRejectInvalidDateRange() {
         LocalDate from = LocalDate.of(2026, 6, 30);
@@ -240,8 +227,6 @@ public class TripServiceTest {
                 .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
                         anyString(), any(LocalDate.class), any(LocalDate.class));
     }
-
-
 
     @Test
     void getTripsBetweenDates_shouldReturnEmptyListWhenNoTripsFound() {
@@ -263,28 +248,26 @@ public class TripServiceTest {
                         "bob", from, to);
     }
 
-
-
-/// TESTS FOR UPDATE METHOD
-
-
+    // TESTS FOR UPDATE METHOD
 
     @Test
     void updateTrip_shouldUpdateStartDate() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
         dto.setStartDate(LocalDate.of(2026, 6, 12));
 
-        tripService.updateTrip(1L, dto);
+        tripService.updateTrip(tripId, dto);
 
         assertEquals(LocalDate.of(2026, 6, 12), trip.getStartDate());
         assertEquals(LocalDate.of(2026, 6, 15), trip.getEndDate());
@@ -294,20 +277,22 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldUpdateEndDate() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
         dto.setEndDate(LocalDate.of(2026, 6, 20));
 
-        tripService.updateTrip(1L, dto);
+        tripService.updateTrip(tripId, dto);
 
         assertEquals(LocalDate.of(2026, 6, 10), trip.getStartDate());
         assertEquals(LocalDate.of(2026, 6, 20), trip.getEndDate());
@@ -317,13 +302,15 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldUpdateBothDates() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
@@ -331,7 +318,7 @@ public class TripServiceTest {
         dto.setStartDate(LocalDate.of(2026, 7, 1));
         dto.setEndDate(LocalDate.of(2026, 7, 10));
 
-        tripService.updateTrip(1L, dto);
+        tripService.updateTrip(tripId, dto);
 
         assertEquals(LocalDate.of(2026, 7, 1), trip.getStartDate());
         assertEquals(LocalDate.of(2026, 7, 10), trip.getEndDate());
@@ -341,11 +328,13 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldRejectMissingUsername() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
@@ -353,7 +342,7 @@ public class TripServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> tripService.updateTrip(1L, dto)
+                () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -361,11 +350,13 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldRejectWrongUsername() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
@@ -374,7 +365,7 @@ public class TripServiceTest {
 
         assertThrows(
                 UnauthorizedTripAccessException.class,
-                () -> tripService.updateTrip(1L, dto)
+                () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -382,11 +373,13 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldRejectNoDate() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
@@ -394,7 +387,7 @@ public class TripServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> tripService.updateTrip(1L, dto)
+                () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -402,13 +395,15 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldRejectInvalidDates() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
@@ -418,7 +413,7 @@ public class TripServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> tripService.updateTrip(1L, dto)
+                () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -426,7 +421,9 @@ public class TripServiceTest {
 
     @Test
     void updateTrip_shouldRejectMissingTrip() {
-        when(tripRepository.findById(1L))
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.empty());
 
         TripDTO dto = new TripDTO();
@@ -435,41 +432,44 @@ public class TripServiceTest {
 
         assertThrows(
                 TripNotFoundException.class,
-                () -> tripService.updateTrip(1L, dto)
+                () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-/// TESTS FOR THE DELETE METHOD
-
+    // TESTS FOR THE DELETE METHOD
 
     @Test
     void deleteTrip_shouldDeleteTrip() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
-        tripService.deleteTrip(1L, "bob");
+        tripService.deleteTrip(tripId, "bob");
 
         verify(tripRepository).delete(trip);
     }
 
     @Test
     void deleteTrip_shouldRejectMissingUsername() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> tripService.deleteTrip(1L, null)
+                () -> tripService.deleteTrip(tripId, null)
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
@@ -477,16 +477,18 @@ public class TripServiceTest {
 
     @Test
     void deleteTrip_shouldRejectBlankUsername() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> tripService.deleteTrip(1L, "   ")
+                () -> tripService.deleteTrip(tripId, "   ")
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
@@ -494,16 +496,18 @@ public class TripServiceTest {
 
     @Test
     void deleteTrip_shouldRejectWrongUsername() {
+        UUID tripId = UUID.randomUUID();
+
         Trip trip = new Trip();
-        trip.setId(1L);
+        trip.setId(tripId);
         trip.setUsername("bob");
 
-        when(tripRepository.findById(1L))
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.of(trip));
 
         assertThrows(
                 UnauthorizedTripAccessException.class,
-                () -> tripService.deleteTrip(1L, "alice")
+                () -> tripService.deleteTrip(tripId, "alice")
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
@@ -511,12 +515,14 @@ public class TripServiceTest {
 
     @Test
     void deleteTrip_shouldRejectMissingTrip() {
-        when(tripRepository.findById(1L))
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId))
                 .thenReturn(Optional.empty());
 
         assertThrows(
                 TripNotFoundException.class,
-                () -> tripService.deleteTrip(1L, "bob")
+                () -> tripService.deleteTrip(tripId, "bob")
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TripService {
@@ -18,7 +19,7 @@ public class TripService {
         this.tripRepository = tripRepository;
     }
 
-    public Long createTrip(TripDTO dto) {
+    public UUID createTrip(TripDTO dto) {
         if (dto.getUsername() == null || dto.getUsername().isBlank()) {
             throw new IllegalArgumentException("username is required");
         }
@@ -51,7 +52,7 @@ public class TripService {
         return tripRepository.findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(username, startDate, endDate);
     }
 
-    public void updateTrip(Long tripId, TripDTO dto) {
+    public void updateTrip(UUID tripId, TripDTO dto) {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripNotFoundException("Trip not found"));
 
@@ -99,7 +100,7 @@ public class TripService {
         tripRepository.save(trip);
     }
 
-    public void deleteTrip(Long tripId, String username) {
+    public void deleteTrip(UUID tripId, String username) {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() ->  new TripNotFoundException("Trip not found"));
 
