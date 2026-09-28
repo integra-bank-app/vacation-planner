@@ -19,7 +19,6 @@ public class RestaurantService {
 
     public UUID createRestaurant(String name, String address, LocalTime openingHour, LocalTime closingHour) {
         UUID id = UUID.randomUUID();
-        // TODO validate data and throw exception
         Restaurant restaurant = new Restaurant(id, name, address, openingHour, closingHour);
         RestaurantValidator.validate(restaurant);
         restaurantRepository.save(restaurant);
