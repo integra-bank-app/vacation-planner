@@ -4,6 +4,7 @@ import integra.vacation_planner_backend.dto.RestaurantDTO;
 import integra.vacation_planner_backend.domain.Restaurant;
 import integra.vacation_planner_backend.exception.RestaurantServiceException;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
+import integra.vacation_planner_backend.validator.RestaurantValidator;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ public class RestaurantService {
         UUID id = UUID.randomUUID();
         // TODO validate data and throw exception
         Restaurant restaurant = new Restaurant(id, name, address, openingHour, closingHour);
+        RestaurantValidator.validate(restaurant);
         restaurantRepository.save(restaurant);
         return id;
     }
@@ -49,6 +51,7 @@ public class RestaurantService {
         if (closingHour != null) {
             restaurant.setClosingHour(closingHour);
         }
+        RestaurantValidator.validate(restaurant);
         restaurantRepository.save(restaurant);
     }
 
