@@ -1,6 +1,6 @@
 package integra.vacation_planner_backend.repository;
 
-import integra.vacation_planner_backend.entity.Accommodation;
+import integra.vacation_planner_backend.domain.Accommodation;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

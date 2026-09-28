@@ -2,7 +2,7 @@ package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.dto.AccommodationRequest;
 import integra.vacation_planner_backend.dto.AccommodationResponse;
-import integra.vacation_planner_backend.entity.Accommodation;
+import integra.vacation_planner_backend.domain.Accommodation;
 import integra.vacation_planner_backend.exception.AccommodationNotFoundException;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import org.springframework.stereotype.Service;
