@@ -9,9 +9,5 @@ class VacationPlannerBackendApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-    @Test
-    void failOnPurpose() {
-        org.junit.jupiter.api.Assertions.fail("test CI");
-    }
 
 }
