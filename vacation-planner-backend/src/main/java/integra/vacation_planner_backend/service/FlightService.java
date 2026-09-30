@@ -1,4 +1,5 @@
 package integra.vacation_planner_backend.service;
+
 import integra.vacation_planner_backend.dto.FlightRequest;
 import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.exception.ConflictException;
@@ -14,6 +15,7 @@ import java.util.List;
 public class FlightService {
 
     private final FlightRepository flightRepository;
+
     public FlightService(FlightRepository flightRepository) {
         this.flightRepository = flightRepository;
     }
