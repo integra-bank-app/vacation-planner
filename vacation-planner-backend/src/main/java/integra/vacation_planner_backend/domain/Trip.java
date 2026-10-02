@@ -1,6 +1,9 @@
 package integra.vacation_planner_backend.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,8 +23,11 @@ public class Trip {
     private UUID id;
 
     private String destination;
+
     private LocalDate startDate;
+
     private LocalDate endDate;
+
     private String username;
 
 }

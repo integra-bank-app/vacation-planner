@@ -1,4 +1,5 @@
 package integra.vacation_planner_backend.controller;
+
 import integra.vacation_planner_backend.dto.FlightRequest;
 import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.domain.Flight;
@@ -16,8 +17,12 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FlightController.class)
 @AutoConfigureMockMvc(addFilters = false)

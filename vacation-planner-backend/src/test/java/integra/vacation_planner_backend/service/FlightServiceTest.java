@@ -1,4 +1,5 @@
 package integra.vacation_planner_backend.service;
+
 import integra.vacation_planner_backend.dto.FlightRequest;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
@@ -13,7 +14,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FlightServiceTest {
@@ -83,6 +87,7 @@ class FlightServiceTest {
     void getFlights_blankAirportCode_throwsValidationException() {
         assertThrows(ValidationException.class, () -> flightService.getFlights(""));
     }
+
     private FlightRequest validRequest() {
         return new FlightRequest(
                 "W43381",
