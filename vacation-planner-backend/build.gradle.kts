@@ -1,9 +1,9 @@
 plugins {
-    java
+	java
     checkstyle
-    id("org.springframework.boot") version "4.1.1"
-    id("io.spring.dependency-management") version "1.1.7"
-    id("org.flywaydb.flyway") version "9.22.1"
+	id("org.springframework.boot") version "4.1.1"
+	id("io.spring.dependency-management") version "1.1.7"
+	id("org.flywaydb.flyway") version "9.22.1"
 }
 
 group = "integra"
@@ -34,6 +34,7 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testAnnotationProcessor("org.projectlombok:lombok")
+    testRuntimeOnly("com.h2database:h2")
 }
 
 tasks.withType<Test> {
