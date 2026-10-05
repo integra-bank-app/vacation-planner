@@ -22,9 +22,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RestaurantServiceTest {
     @Mock
-    RestaurantRepository restaurantRepositoryMock;
+    private RestaurantRepository restaurantRepositoryMock;
     @InjectMocks
-    RestaurantService restaurantService;
+    private RestaurantService restaurantService;
 
     @Test
     void createRestaurant() {
@@ -47,7 +47,7 @@ class RestaurantServiceTest {
 
     @Test
     void getAllRestaurants() {
-        List<Restaurant> restaurants = new ArrayList<Restaurant>();
+        List<Restaurant> restaurants = new ArrayList<>();
         Restaurant restaurant1 = new Restaurant(UUID.randomUUID(), "name1111", "address1111",
                 LocalTime.of(11, 11), LocalTime.of(21, 11));
         Restaurant restaurant2 = new Restaurant(UUID.randomUUID(), "name2222", "address2222",
@@ -59,9 +59,13 @@ class RestaurantServiceTest {
     }
 
     @Test
-    // fixme idk what to test here
     void getRestaurantsByCity() {
+        List<Restaurant> restaurants = new ArrayList<>();
+        Restaurant restaurant = new Restaurant(UUID.randomUUID(), "name", "Cluj", LocalTime.NOON, LocalTime.MIDNIGHT);
+        restaurants.add(restaurant);
 
+        when(restaurantRepositoryMock.getRestaurantsByAddressLike("Cluj")).thenReturn(restaurants);
+        assertEquals(restaurants, restaurantRepositoryMock.getRestaurantsByAddressLike("Cluj"));
     }
 
     @Test
