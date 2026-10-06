@@ -29,8 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
-//@WebMvcTest(RestaurantController.class)
-//@WithMockUser
 @SpringBootTest
 class RestaurantControllerTest {
     @Mock

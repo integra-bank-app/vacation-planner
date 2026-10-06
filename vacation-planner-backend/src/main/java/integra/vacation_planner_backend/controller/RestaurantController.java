@@ -41,26 +41,26 @@ public class RestaurantController {
     }
 
     @PutMapping("/restaurants/{id}")
-    public ResponseEntity<String> updateRestaurant(@PathVariable UUID id, @RequestParam Optional<String> address,
+    public String updateRestaurant(@PathVariable UUID id, @RequestParam Optional<String> address,
                                    @RequestParam Optional<LocalTime> openingHour, @RequestParam Optional<LocalTime> closingHour) {
         try {
             restaurantService.updateRestaurant(id, address.orElse(null), openingHour.orElse(null),
                     closingHour.orElse(null));
-            return ResponseEntity.ok("Restaurant updated successfully");
+            return "Restaurant updated successfully";
         }
         catch (RestaurantServiceException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
     @DeleteMapping("/restaurants/{id}")
-    public ResponseEntity<String> deleteRestaurant(@PathVariable UUID id) {
+    public String deleteRestaurant(@PathVariable UUID id) {
         try {
             restaurantService.deleteRestaurant(id);
-            return ResponseEntity.ok("Restaurant deleted successfully");
+            return "Restaurant deleted successfully";
         }
         catch (RestaurantServiceException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 }
