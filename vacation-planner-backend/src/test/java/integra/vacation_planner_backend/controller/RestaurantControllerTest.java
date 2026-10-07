@@ -54,7 +54,7 @@ class RestaurantControllerTest {
         restaurantDTOList.add(restaurantDTO);
         when(restaurantServiceMock.getRestaurantsByCity(any())).thenReturn(restaurantDTOList);
 
-        mockMvc.perform(get("/api/restaurants/Cluj"))
+        mockMvc.perform(get("/restaurants/Cluj"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(restaurantDTO.id().toString()))
@@ -69,7 +69,7 @@ class RestaurantControllerTest {
         when(restaurantServiceMock.createRestaurant(eq(restaurantDTO.name()), eq(restaurantDTO.address()), any(), any()))
                 .thenReturn(restaurantDTO.id());
 
-        mockMvc.perform(post("/api/restaurants").param("name", restaurantDTO.name())
+        mockMvc.perform(post("/restaurants").param("name", restaurantDTO.name())
                         .param("address", restaurantDTO.address())
                         .param("openingHour", restaurantDTO.openingHour().toString())
                         .param("closingHour", restaurantDTO.closingHour().toString()))
@@ -79,7 +79,7 @@ class RestaurantControllerTest {
         when(restaurantServiceMock.createRestaurant(eq(restaurantDTO.name()), eq(restaurantDTO.address()), any(), any()))
                 .thenThrow(RestaurantServiceException.class);
 
-        mockMvc.perform(post("/api/restaurants").param("name", restaurantDTO.name())
+        mockMvc.perform(post("/restaurants").param("name", restaurantDTO.name())
                         .param("address", restaurantDTO.address())
                         .param("openingHour", restaurantDTO.openingHour().toString())
                         .param("closingHour", restaurantDTO.closingHour().toString()))
@@ -89,27 +89,27 @@ class RestaurantControllerTest {
     @Test
     void updateRestaurant() throws Exception {
         String newName = RandomString.make(20);
-        mockMvc.perform(put("/api/restaurants/" + restaurantDTO.id())
+        mockMvc.perform(put("/restaurants/" + restaurantDTO.id())
                         .param("name", newName))
                 .andExpect(status().isOk());
 
         UUID id_for_error = UUID.randomUUID();
         doThrow(new RestaurantServiceException()).when(restaurantServiceMock).updateRestaurant(eq(id_for_error), any(), any(), any());
 
-        mockMvc.perform(put("/api/restaurants/" + id_for_error)
+        mockMvc.perform(put("/restaurants/" + id_for_error)
                         .param("name", newName))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteRestaurant() throws Exception {
-        mockMvc.perform(delete("/api/restaurants/" + UUID.randomUUID()))
+        mockMvc.perform(delete("/restaurants/" + UUID.randomUUID()))
                 .andExpect(status().isOk());
 
         UUID id_for_error = UUID.randomUUID();
         doThrow(new RestaurantServiceException()).when(restaurantServiceMock).deleteRestaurant(id_for_error);
 
-        mockMvc.perform(delete("/api/restaurants/" + id_for_error))
+        mockMvc.perform(delete("/restaurants/" + id_for_error))
                 .andExpect(status().isNotFound());
     }
 }

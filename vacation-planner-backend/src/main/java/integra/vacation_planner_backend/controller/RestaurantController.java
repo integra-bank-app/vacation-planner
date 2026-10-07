@@ -3,7 +3,7 @@ package integra.vacation_planner_backend.controller;
 import integra.vacation_planner_backend.dto.RestaurantDTO;
 import integra.vacation_planner_backend.service.RestaurantService;
 import integra.vacation_planner_backend.exception.RestaurantServiceException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,21 +21,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api")
+@AllArgsConstructor
+@RequestMapping("/restaurants")
 public class RestaurantController {
     private final RestaurantService restaurantService;
 
-    @Autowired
-    public RestaurantController(RestaurantService restaurantService) {
-        this.restaurantService = restaurantService;
-    }
-
-    @GetMapping("/restaurants/{city}")
+    @GetMapping("/{city}")
     public List<RestaurantDTO> getRestaurants(@PathVariable String city) {
         return restaurantService.getRestaurantsByCity(city);
     }
 
-    @PostMapping("/restaurants")
+    @PostMapping()
     public UUID createRestaurant(@RequestParam String name, @RequestParam String address,
                                  @RequestParam LocalTime openingHour, @RequestParam LocalTime closingHour) {
         try {
@@ -46,24 +42,22 @@ public class RestaurantController {
         }
     }
 
-    @PutMapping("/restaurants/{id}")
-    public String updateRestaurant(@PathVariable UUID id, @RequestParam Optional<String> address,
+    @PutMapping("/{id}")
+    public void updateRestaurant(@PathVariable UUID id, @RequestParam Optional<String> address,
                                    @RequestParam Optional<LocalTime> openingHour, @RequestParam Optional<LocalTime> closingHour) {
         try {
             restaurantService.updateRestaurant(id, address.orElse(null), openingHour.orElse(null),
                     closingHour.orElse(null));
-            return "Restaurant updated successfully";
         }
         catch (RestaurantServiceException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
-    @DeleteMapping("/restaurants/{id}")
-    public String deleteRestaurant(@PathVariable UUID id) {
+    @DeleteMapping("/{id}")
+    public void deleteRestaurant(@PathVariable UUID id) {
         try {
             restaurantService.deleteRestaurant(id);
-            return "Restaurant deleted successfully";
         }
         catch (RestaurantServiceException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
