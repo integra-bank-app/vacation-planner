@@ -24,9 +24,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return Map.of(
                 "error", exception.getMessage()
         );
-    @ExceptionHandler(InvalidUserDataException.class)
-    public ProblemDetail handleInvalidUserData(InvalidUserDataException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -37,6 +34,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return Map.of(
                 "error", exception.getMessage()
         );
+    }
+
+    @ExceptionHandler(InvalidUserDataException.class)
+    public ProblemDetail handleInvalidUserData(InvalidUserDataException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ProblemDetail handleUserAlreadyExists(UserAlreadyExistsException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
@@ -46,12 +50,5 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleUserNotFound(UserNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
-}
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleUnexpected(Exception e) {
-        log.error("Unexpected error", e);
-        return ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong");
-    }
 }

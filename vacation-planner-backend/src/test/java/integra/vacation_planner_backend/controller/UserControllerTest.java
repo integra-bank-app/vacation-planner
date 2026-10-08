@@ -30,8 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserControllerTest {
 
     private static final String USERNAME = "dariamaria";
+
     private static final String EMAIL = "daria@example.com";
+
     private static final String FIRST_NAME = "Daria";
+
     private static final String LAST_NAME = "Maria";
 
     @Autowired

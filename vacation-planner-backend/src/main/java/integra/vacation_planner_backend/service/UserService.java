@@ -15,8 +15,10 @@ import java.util.UUID;
 public class UserService {
 
     private static final String USERNAME_REGEX = "^[a-z0-9]{3,20}$";
+
     private static final String EMAIL_REGEX =
             "^[A-Za-z0-9_+-]+(\\.[A-Za-z0-9_+-]+)*@([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$";
+
     private static final int MAX_NAME_LENGTH = 50;
 
     private final UserRepository userRepository;

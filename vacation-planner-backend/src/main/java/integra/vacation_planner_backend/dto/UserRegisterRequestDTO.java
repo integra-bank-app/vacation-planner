@@ -5,4 +5,4 @@ public record UserRegisterRequestDTO(
         String email,
         String firstName,
         String lastName
-) {}
+) { }
