@@ -1,12 +1,17 @@
 package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
@@ -21,18 +27,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.anyString;
 
 public class TripServiceTest {
 
     private TripRepository tripRepository;
 
+    private UserRepository userRepository;
+
     private TripService tripService;
+
+    private User bob;
 
     @BeforeEach
     void setUp() {
         tripRepository = mock(TripRepository.class);
-        tripService = new TripService(tripRepository);
+        userRepository = mock(UserRepository.class);
+        tripService = new TripService(tripRepository, userRepository);
+
+        bob = new User();
+        bob.setId(UUID.randomUUID());
+        bob.setUsername("bob");
     }
 
 
@@ -50,14 +64,38 @@ public class TripServiceTest {
         Trip savedTrip = new Trip();
         savedTrip.setId(tripId);
 
+        when(userRepository.findByUsername("bob"))
+            .thenReturn(Optional.of(bob));
         when(tripRepository.save(any(Trip.class)))
-                .thenReturn(savedTrip);
+            .thenReturn(savedTrip);
 
         UUID result = tripService.createTrip(dto);
 
         assertEquals(tripId, result);
 
-        verify(tripRepository).save(any(Trip.class));
+        ArgumentCaptor<Trip> captor = ArgumentCaptor.forClass(Trip.class);
+        verify(tripRepository).save(captor.capture());
+        assertSame(bob, captor.getValue().getUser());
+    }
+
+    @Test
+    void createTrip_shouldRejectUnknownUser() {
+        TripDTO dto = new TripDTO();
+
+        dto.setUsername("unknown");
+        dto.setDestination("Paris");
+        dto.setStartDate(LocalDate.of(2026, 6, 10));
+        dto.setEndDate(LocalDate.of(2026, 6, 15));
+
+        when(userRepository.findByUsername("unknown"))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            UserNotFoundException.class,
+            () -> tripService.createTrip(dto)
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
     }
 
     @Test
@@ -69,8 +107,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -86,8 +124,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -102,8 +140,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -119,8 +157,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -135,8 +173,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -151,8 +189,8 @@ public class TripServiceTest {
         dto.setStartDate(LocalDate.of(2026, 6, 10));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -168,8 +206,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.createTrip(dto)
+            IllegalArgumentException.class,
+            () -> tripService.createTrip(dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -184,25 +222,54 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(UUID.randomUUID());
-        trip.setUsername("bob");
+        trip.setUser(bob);
         trip.setDestination("Paris");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
+        when(userRepository.findByUsername("bob"))
+            .thenReturn(Optional.of(bob));
         when(tripRepository
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        "bob", from, to))
-                .thenReturn(List.of(trip));
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                bob, from, to))
+            .thenReturn(List.of(trip));
 
-        List<Trip> result =
-                tripService.getTripsBetweenDates("bob", from, to);
+        List<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to);
 
         assertEquals(1, result.size());
-        assertEquals(trip, result.get(0));
+        assertEquals(
+            new TripResponse(
+                trip.getId(),
+                "Paris",
+                LocalDate.of(2026, 6, 10),
+                LocalDate.of(2026, 6, 15),
+                "bob"
+            ),
+            result.get(0)
+        );
 
         verify(tripRepository)
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        "bob", from, to);
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                bob, from, to);
+    }
+
+    @Test
+    void getTripsBetweenDates_shouldRejectUnknownUser() {
+        LocalDate from = LocalDate.of(2026, 6, 1);
+        LocalDate to = LocalDate.of(2026, 6, 30);
+
+        when(userRepository.findByUsername("unknown"))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            UserNotFoundException.class,
+            () -> tripService.getTripsBetweenDates("unknown", from, to)
+        );
+
+        verify(tripRepository, never())
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                any(User.class), any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
@@ -211,13 +278,13 @@ public class TripServiceTest {
         LocalDate to = LocalDate.of(2026, 6, 30);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.getTripsBetweenDates("   ", from, to)
+            IllegalArgumentException.class,
+            () -> tripService.getTripsBetweenDates("   ", from, to)
         );
 
         verify(tripRepository, never())
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        anyString(), any(LocalDate.class), any(LocalDate.class));
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                any(User.class), any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
@@ -226,13 +293,13 @@ public class TripServiceTest {
         LocalDate to = LocalDate.of(2026, 6, 1);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.getTripsBetweenDates("bob", from, to)
+            IllegalArgumentException.class,
+            () -> tripService.getTripsBetweenDates("bob", from, to)
         );
 
         verify(tripRepository, never())
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        anyString(), any(LocalDate.class), any(LocalDate.class));
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                any(User.class), any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
@@ -240,19 +307,21 @@ public class TripServiceTest {
         LocalDate from = LocalDate.of(2026, 6, 1);
         LocalDate to = LocalDate.of(2026, 6, 30);
 
+        when(userRepository.findByUsername("bob"))
+            .thenReturn(Optional.of(bob));
         when(tripRepository
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        "bob", from, to))
-                .thenReturn(List.of());
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                bob, from, to))
+            .thenReturn(List.of());
 
-        List<Trip> result =
-                tripService.getTripsBetweenDates("bob", from, to);
+        List<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to);
 
         assertTrue(result.isEmpty());
 
         verify(tripRepository)
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        "bob", from, to);
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                bob, from, to);
     }
 
     // TESTS FOR UPDATE METHOD
@@ -263,12 +332,12 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
@@ -288,12 +357,12 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
@@ -313,12 +382,12 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
@@ -339,17 +408,17 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setStartDate(LocalDate.of(2026, 6, 12));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.updateTrip(tripId, dto)
+            IllegalArgumentException.class,
+            () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -361,18 +430,18 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("alice");
         dto.setStartDate(LocalDate.of(2026, 6, 12));
 
         assertThrows(
-                UnauthorizedTripAccessException.class,
-                () -> tripService.updateTrip(tripId, dto)
+            UnauthorizedTripAccessException.class,
+            () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -384,17 +453,17 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.updateTrip(tripId, dto)
+            IllegalArgumentException.class,
+            () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -406,12 +475,12 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
@@ -419,8 +488,8 @@ public class TripServiceTest {
         dto.setEndDate(LocalDate.of(2026, 6, 15));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.updateTrip(tripId, dto)
+            IllegalArgumentException.class,
+            () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -431,15 +500,15 @@ public class TripServiceTest {
         UUID tripId = UUID.randomUUID();
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
 
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
         dto.setStartDate(LocalDate.of(2026, 6, 12));
 
         assertThrows(
-                TripNotFoundException.class,
-                () -> tripService.updateTrip(tripId, dto)
+            TripNotFoundException.class,
+            () -> tripService.updateTrip(tripId, dto)
         );
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -453,10 +522,10 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         tripService.deleteTrip(tripId, "bob");
 
@@ -469,14 +538,14 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.deleteTrip(tripId, null)
+            IllegalArgumentException.class,
+            () -> tripService.deleteTrip(tripId, null)
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
@@ -488,14 +557,14 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> tripService.deleteTrip(tripId, "   ")
+            IllegalArgumentException.class,
+            () -> tripService.deleteTrip(tripId, "   ")
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
@@ -507,14 +576,14 @@ public class TripServiceTest {
 
         Trip trip = new Trip();
         trip.setId(tripId);
-        trip.setUsername("bob");
+        trip.setUser(bob);
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.of(trip));
+            .thenReturn(Optional.of(trip));
 
         assertThrows(
-                UnauthorizedTripAccessException.class,
-                () -> tripService.deleteTrip(tripId, "alice")
+            UnauthorizedTripAccessException.class,
+            () -> tripService.deleteTrip(tripId, "alice")
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
@@ -525,11 +594,11 @@ public class TripServiceTest {
         UUID tripId = UUID.randomUUID();
 
         when(tripRepository.findById(tripId))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
 
         assertThrows(
-                TripNotFoundException.class,
-                () -> tripService.deleteTrip(tripId, "bob")
+            TripNotFoundException.class,
+            () -> tripService.deleteTrip(tripId, "bob")
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));

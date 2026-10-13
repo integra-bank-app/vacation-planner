@@ -1,10 +1,15 @@
 package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -15,8 +20,11 @@ import java.util.UUID;
 public class TripService {
     private final TripRepository tripRepository;
 
-    public TripService(TripRepository tripRepository) {
+    private final UserRepository userRepository;
+
+    public TripService(TripRepository tripRepository, UserRepository userRepository) {
         this.tripRepository = tripRepository;
+        this.userRepository = userRepository;
     }
 
     public UUID createTrip(TripDTO dto) {
@@ -33,15 +41,17 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
+        User user = findUser(dto.getUsername());
+
         Trip trip = new Trip();
         trip.setDestination(dto.getDestination());
         trip.setStartDate(dto.getStartDate());
         trip.setEndDate(dto.getEndDate());
-        trip.setUsername(dto.getUsername());
+        trip.setUser(user);
         return tripRepository.save(trip).getId();
     }
 
-    public List<Trip> getTripsBetweenDates(String username, LocalDate startDate, LocalDate endDate) {
+    public List<TripResponse> getTripsBetweenDates(String username, LocalDate startDate, LocalDate endDate) {
         if (username.isBlank()) {
             throw new IllegalArgumentException("username is required");
         }
@@ -49,26 +59,39 @@ public class TripService {
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
-        return tripRepository.findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(username, startDate, endDate);
+
+        User user = findUser(username);
+
+        return tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(user, startDate, endDate)
+            .stream()
+            .map(trip -> new TripResponse(
+                trip.getId(),
+                trip.getDestination(),
+                trip.getStartDate(),
+                trip.getEndDate(),
+                user.getUsername()
+            ))
+            .toList();
     }
 
+    @Transactional
     public void updateTrip(UUID tripId, TripDTO dto) {
         Trip trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
 
         if (dto.getUsername() == null || dto.getUsername().isBlank()) {
             throw new IllegalArgumentException("username is required");
         }
 
-        if (!trip.getUsername().equals(dto.getUsername())) {
+        if (!trip.getUser().getUsername().equals(dto.getUsername())) {
             throw new UnauthorizedTripAccessException(
-                    "Not allowed to update this trip"
+                "Not allowed to update this trip"
             );
         }
 
         if (dto.getStartDate() == null && dto.getEndDate() == null) {
             throw new IllegalArgumentException(
-                    "At least one date must be provided"
+                "At least one date must be provided"
             );
         }
 
@@ -85,7 +108,7 @@ public class TripService {
 
         if (newStartDate.isAfter(newEndDate)) {
             throw new IllegalArgumentException(
-                    "startDate must be before endDate"
+                "startDate must be before endDate"
             );
         }
 
@@ -100,20 +123,26 @@ public class TripService {
         tripRepository.save(trip);
     }
 
+    @Transactional
     public void deleteTrip(UUID tripId, String username) {
         Trip trip = tripRepository.findById(tripId)
-                .orElseThrow(() ->  new TripNotFoundException("Trip not found"));
+            .orElseThrow(() ->  new TripNotFoundException("Trip not found"));
 
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("username is required");
         }
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new UnauthorizedTripAccessException(
-                    "Not allowed to delete this trip"
+                "Not allowed to delete this trip"
             );
         }
 
         tripRepository.delete(trip);
+    }
+
+    private User findUser(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 }
