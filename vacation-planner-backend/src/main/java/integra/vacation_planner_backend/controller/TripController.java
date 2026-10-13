@@ -2,6 +2,7 @@ package integra.vacation_planner_backend.controller;
 
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.service.TripService;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
@@ -35,12 +36,21 @@ public class TripController {
     }
 
     @GetMapping
-    public List<Trip> getTrips(
-            @RequestParam String username,
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate
+    public List<TripResponse> getTrips(
+        @RequestParam String username,
+        @RequestParam LocalDate startDate,
+        @RequestParam LocalDate endDate
     ) {
-        return tripService.getTripsBetweenDates(username, startDate, endDate);
+        return tripService.getTripsBetweenDates(username, startDate, endDate)
+            .stream()
+            .map(trip -> new TripResponse(
+                trip.getId(),
+                trip.getUsername(),
+                trip.getDestination(),
+                trip.getStartDate(),
+                trip.getEndDate()
+            ))
+            .toList();
     }
 
     @PutMapping("/{tripId}")

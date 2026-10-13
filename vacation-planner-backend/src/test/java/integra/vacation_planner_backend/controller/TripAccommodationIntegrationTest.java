@@ -5,7 +5,6 @@ import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,12 +45,6 @@ class TripAccommodationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        tripRepository.deleteAll();
-        accommodationRepository.deleteAll();
-    }
-
-    @AfterEach
-    void tearDown() {
         tripRepository.deleteAll();
         accommodationRepository.deleteAll();
     }
