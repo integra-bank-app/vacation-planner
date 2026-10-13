@@ -13,10 +13,16 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+import integra.vacation_planner_backend.dto.TripAccommodationRequest;
+import integra.vacation_planner_backend.dto.TripAccommodationResponse;
+import integra.vacation_planner_backend.exception.ConflictException;
+import integra.vacation_planner_backend.exception.ForbiddenException;
+import integra.vacation_planner_backend.exception.NotFoundException;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -314,5 +320,165 @@ class TripControllerTest {
                 .with(csrf())
                 .param("username", "bob"))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldReturnOk() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        mockMvc.perform(post("/trips/" + tripId + "/accommodations")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk());
+
+           verify(tripService).addAccommodationToTrip(eq(tripId), any(TripAccommodationRequest.class));
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldReturnNotFound_whenTripOrAccommodationDoesNotExist()
+        throws Exception {
+
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        doThrow(new NotFoundException("Trip not found"))
+            .when(tripService)
+            .addAccommodationToTrip(eq(tripId), any(TripAccommodationRequest.class));
+
+        mockMvc.perform(post("/trips/" + tripId + "/accommodations")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldReturnForbidden_whenUserIsNotOwner()
+        throws Exception {
+
+           UUID tripId = UUID.randomUUID();
+           UUID accommodationId = UUID.randomUUID();
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "alice",
+            accommodationId
+        );
+
+        doThrow(new ForbiddenException("User is not the owner of this trip"))
+            .when(tripService)
+            .addAccommodationToTrip(eq(tripId), any(TripAccommodationRequest.class));
+
+        mockMvc.perform(post("/trips/" + tripId + "/accommodations")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldReturnConflict_whenAccommodationAlreadyAdded()
+        throws Exception {
+
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        doThrow(new ConflictException("Accommodation already added to trip"))
+            .when(tripService)
+            .addAccommodationToTrip(eq(tripId), any(TripAccommodationRequest.class));
+
+        mockMvc.perform(post("/trips/" + tripId + "/accommodations")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void getTripAccommodations_shouldReturnAccommodations() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        TripAccommodationResponse response = new TripAccommodationResponse(
+            accommodationId,
+            "Hotel Central",
+            "Str. Memorandumului 10",
+            "Cluj",
+            BigDecimal.valueOf(250)
+        );
+
+        when(tripService.getTripAccommodations(tripId, "bob"))
+                .thenReturn(List.of(response));
+
+        mockMvc.perform(get("/trips/" + tripId + "/accommodations")
+                .param("username", "bob"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(accommodationId.toString()))
+            .andExpect(jsonPath("$[0].name").value("Hotel Central"))
+            .andExpect(jsonPath("$[0].address").value("Str. Memorandumului 10"))
+            .andExpect(jsonPath("$[0].city").value("Cluj"))
+            .andExpect(jsonPath("$[0].pricePerNight").value(250));
+
+        verify(tripService).getTripAccommodations(tripId, "bob");
+    }
+
+    @Test
+    void getTripAccommodations_shouldReturnForbidden_whenUserIsNotOwner()
+        throws Exception {
+
+        UUID tripId = UUID.randomUUID();
+
+        when(tripService.getTripAccommodations(tripId, "alice"))
+            .thenThrow(new ForbiddenException("User is not the owner of this trip"));
+
+        mockMvc.perform(get("/trips/" + tripId + "/accommodations")
+                .param("username", "alice"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void removeAccommodationFromTrip_shouldReturnOk() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/trips/" + tripId + "/accommodations/" + accommodationId)
+                .with(csrf())
+                .param("username", "bob"))
+                .andExpect(status().isOk());
+
+        verify(tripService).removeAccommodationFromTrip(tripId, accommodationId, "bob");
+    }
+
+    @Test
+    void removeAccommodationFromTrip_shouldReturnNotFound_whenAccommodationIsNotInTrip()
+        throws Exception {
+
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        doThrow(new NotFoundException("Accommodation not found in trip"))
+            .when(tripService)
+            .removeAccommodationFromTrip(tripId, accommodationId, "bob");
+
+        mockMvc.perform(delete("/trips/" + tripId + "/accommodations/" + accommodationId)
+                .with(csrf())
+                .param("username", "bob"))
+                .andExpect(status().isNotFound());
     }
 }

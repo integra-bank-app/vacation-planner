@@ -7,7 +7,15 @@ import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import integra.vacation_planner_backend.repository.AccommodationRepository;
+import integra.vacation_planner_backend.domain.Accommodation;
+import integra.vacation_planner_backend.dto.TripAccommodationRequest;
+import integra.vacation_planner_backend.dto.TripAccommodationResponse;
+import integra.vacation_planner_backend.exception.ConflictException;
+import integra.vacation_planner_backend.exception.ForbiddenException;
+import integra.vacation_planner_backend.exception.NotFoundException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -27,12 +35,15 @@ public class TripServiceTest {
 
     private TripRepository tripRepository;
 
+    private AccommodationRepository accommodationRepository;
+
     private TripService tripService;
 
     @BeforeEach
     void setUp() {
         tripRepository = mock(TripRepository.class);
-        tripService = new TripService(tripRepository);
+        accommodationRepository = mock(AccommodationRepository.class);
+        tripService = new TripService(tripRepository, accommodationRepository);
     }
 
 
@@ -175,8 +186,6 @@ public class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-    // TESTS FOR GET TRIPS
-
     @Test
     void getTripsBetweenDates_shouldReturnTrips() {
         LocalDate from = LocalDate.of(2026, 6, 1);
@@ -201,8 +210,11 @@ public class TripServiceTest {
         assertEquals(trip, result.get(0));
 
         verify(tripRepository)
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        "bob", from, to);
+            .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                "bob",
+                from,
+                to
+            );
     }
 
     @Test
@@ -251,11 +263,12 @@ public class TripServiceTest {
         assertTrue(result.isEmpty());
 
         verify(tripRepository)
-                .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                        "bob", from, to);
+            .findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                "bob",
+                from,
+                to
+            );
     }
-
-    // TESTS FOR UPDATE METHOD
 
     @Test
     void updateTrip_shouldUpdateStartDate() {
@@ -445,8 +458,6 @@ public class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
-    // TESTS FOR THE DELETE METHOD
-
     @Test
     void deleteTrip_shouldDeleteTrip() {
         UUID tripId = UUID.randomUUID();
@@ -534,4 +545,256 @@ public class TripServiceTest {
 
         verify(tripRepository, never()).delete(any(Trip.class));
     }
+
+    @Test
+    void addAccommodationToTrip_shouldAddAccommodation() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Accommodation accommodation = new Accommodation();
+        accommodation.setId(accommodationId);
+        accommodation.setName("Hotel Central");
+        accommodation.setPricePerNight(BigDecimal.valueOf(250));
+        accommodation.setAddress("Str. Memorandumului 10");
+        accommodation.setCity("Cluj");
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(accommodationRepository.findById(accommodationId))
+            .thenReturn(Optional.of(accommodation));
+
+        tripService.addAccommodationToTrip(tripId, request);
+
+        assertTrue(trip.getAccommodations().contains(accommodation));
+        verify(tripRepository).save(trip);
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.addAccommodationToTrip(tripId, request)
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldRejectMissingAccommodation() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(accommodationRepository.findById(accommodationId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.addAccommodationToTrip(tripId, request)
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldRejectWrongUsername() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Accommodation accommodation = new Accommodation();
+        accommodation.setId(accommodationId);
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "alice",
+            accommodationId
+        );
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(accommodationRepository.findById(accommodationId))
+            .thenReturn(Optional.of(accommodation));
+
+        assertThrows(
+            ForbiddenException.class,
+            () -> tripService.addAccommodationToTrip(tripId, request)
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addAccommodationToTrip_shouldRejectDuplicateAccommodation() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Accommodation accommodation = new Accommodation();
+        accommodation.setId(accommodationId);
+
+        trip.getAccommodations().add(accommodation);
+
+        TripAccommodationRequest request = new TripAccommodationRequest(
+            "bob",
+            accommodationId
+        );
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(accommodationRepository.findById(accommodationId))
+            .thenReturn(Optional.of(accommodation));
+
+        assertThrows(
+            ConflictException.class,
+            () -> tripService.addAccommodationToTrip(tripId, request)
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void getTripAccommodations_shouldReturnAccommodationsSortedByPrice() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Accommodation expensive = new Accommodation();
+        expensive.setId(UUID.randomUUID());
+        expensive.setName("Expensive Hotel");
+        expensive.setAddress("Str. A 1");
+        expensive.setCity("Cluj");
+        expensive.setPricePerNight(BigDecimal.valueOf(500));
+
+        Accommodation cheap = new Accommodation();
+        cheap.setId(UUID.randomUUID());
+        cheap.setName("Cheap Hotel");
+        cheap.setAddress("Str. B 2");
+        cheap.setCity("Cluj");
+        cheap.setPricePerNight(BigDecimal.valueOf(200));
+
+        trip.getAccommodations().add(expensive);
+        trip.getAccommodations().add(cheap);
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        List<TripAccommodationResponse> result =
+            tripService.getTripAccommodations(tripId, "bob");
+
+        assertEquals(2, result.size());
+        assertEquals("Cheap Hotel", result.get(0).name());
+        assertEquals(BigDecimal.valueOf(200), result.get(0).pricePerNight());
+        assertEquals("Expensive Hotel", result.get(1).name());
+        assertEquals(BigDecimal.valueOf(500), result.get(1).pricePerNight());
+    }
+
+    @Test
+    void getTripAccommodations_shouldRejectWrongUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        assertThrows(
+            ForbiddenException.class,
+            () -> tripService.getTripAccommodations(tripId, "alice")
+        );
+    }
+
+    @Test
+    void removeAccommodationFromTrip_shouldRemoveAccommodation() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Accommodation accommodation = new Accommodation();
+        accommodation.setId(accommodationId);
+
+        trip.getAccommodations().add(accommodation);
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(accommodationRepository.findById(accommodationId))
+            .thenReturn(Optional.of(accommodation));
+
+        tripService.removeAccommodationFromTrip(tripId, accommodationId, "bob");
+
+            assertTrue(trip.getAccommodations().isEmpty());
+             verify(tripRepository).save(trip);
+    }
+
+    @Test
+    void removeAccommodationFromTrip_shouldRejectAccommodationNotInTrip() {
+        UUID tripId = UUID.randomUUID();
+        UUID accommodationId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Accommodation accommodation = new Accommodation();
+        accommodation.setId(accommodationId);
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(accommodationRepository.findById(accommodationId))
+            .thenReturn(Optional.of(accommodation));
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.removeAccommodationFromTrip(
+                tripId,
+                accommodationId,
+                "bob"
+            )
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
 }
