@@ -14,6 +14,14 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+
+import java.util.HashSet;
+import java.util.Set;
+
 @Setter
 @Getter
 @Entity
@@ -35,5 +43,14 @@ public class Trip {
     @JoinColumn(name = "user_id", nullable = false)
     @EqualsAndHashCode.Exclude
     private User user;
+
+    @EqualsAndHashCode.Exclude
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "trip_accommodation",
+        joinColumns = @JoinColumn(name = "trip_id"),
+        inverseJoinColumns = @JoinColumn(name = "accommodation_id")
+    )
+    private Set<Accommodation> accommodations = new HashSet<>();
 
 }

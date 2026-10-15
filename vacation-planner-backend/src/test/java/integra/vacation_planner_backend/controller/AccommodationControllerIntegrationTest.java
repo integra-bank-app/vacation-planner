@@ -3,6 +3,7 @@ package integra.vacation_planner_backend.controller;
 import integra.vacation_planner_backend.dto.AccommodationRequest;
 import integra.vacation_planner_backend.dto.UpdatePriceRequest;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
+import integra.vacation_planner_backend.repository.TripRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,27 +38,31 @@ class AccommodationControllerIntegrationTest {
     @Autowired
     private AccommodationRepository repository;
 
+    @Autowired
+    private TripRepository tripRepository;
+
     @BeforeEach
     void setUp() {
+        tripRepository.deleteAll();
         repository.deleteAll();
     }
 
     @Test
     void create_shouldReturnId() throws Exception {
         AccommodationRequest request = new AccommodationRequest(
-                "Hotel Central",
-                BigDecimal.valueOf(250),
-                "Str. Memorandumului 10",
-                "Cluj"
+            "Hotel Central",
+            BigDecimal.valueOf(250),
+            "Str. Memorandumului 10",
+            "Cluj"
         );
 
         mockMvc.perform(
-                        post("/accommodations")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isNotEmpty());
+                post("/accommodations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isNotEmpty());
     }
 
     @Test
@@ -65,51 +70,51 @@ class AccommodationControllerIntegrationTest {
         UUID id = createAccommodation();
 
         UpdatePriceRequest request = new UpdatePriceRequest(
-                BigDecimal.valueOf(300)
+            BigDecimal.valueOf(300)
         );
 
         mockMvc.perform(
-                        put("/accommodations/" + id)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                )
-                .andExpect(status().isOk());
+                put("/accommodations/" + id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isOk());
     }
 
     @Test
     void updatePrice_shouldReturnBadRequest_whenPriceIsInvalid()
-            throws Exception {
+        throws Exception {
 
         UUID id = createAccommodation();
 
         UpdatePriceRequest request = new UpdatePriceRequest(
-                BigDecimal.valueOf(-100)
+            BigDecimal.valueOf(-100)
         );
 
         mockMvc.perform(
-                        put("/accommodations/" + id)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                )
-                .andExpect(status().isBadRequest());
+                put("/accommodations/" + id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isBadRequest());
     }
 
     @Test
     void updatePrice_shouldReturnNotFound_whenAccommodationDoesNotExist()
-            throws Exception {
+        throws Exception {
 
         UUID id = UUID.randomUUID();
 
         UpdatePriceRequest request = new UpdatePriceRequest(
-                BigDecimal.valueOf(300)
+            BigDecimal.valueOf(300)
         );
 
         mockMvc.perform(
-                        put("/accommodations/" + id)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                )
-                .andExpect(status().isNotFound());
+                put("/accommodations/" + id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -117,107 +122,107 @@ class AccommodationControllerIntegrationTest {
         UUID id = createAccommodation();
 
         mockMvc.perform(
-                        delete("/accommodations/" + id)
-                )
-                .andExpect(status().isNoContent());
+                delete("/accommodations/" + id)
+            )
+            .andExpect(status().isNoContent());
     }
 
     @Test
     void delete_shouldReturnNotFound_whenAccommodationDoesNotExist()
-            throws Exception {
+        throws Exception {
 
         UUID id = UUID.randomUUID();
 
         mockMvc.perform(
-                        delete("/accommodations/" + id)
-                )
-                .andExpect(status().isNotFound());
+                delete("/accommodations/" + id)
+            )
+            .andExpect(status().isNotFound());
     }
 
     @Test
     void findByCity_shouldReturnAccommodationsSortedByPrice()
-            throws Exception {
+        throws Exception {
 
         createAccommodation(
-                "Expensive Hotel",
-                BigDecimal.valueOf(500),
-                "Str. A 1",
-                "Cluj"
+            "Expensive Hotel",
+            BigDecimal.valueOf(500),
+            "Str. A 1",
+            "Cluj"
         );
 
         createAccommodation(
-                "Cheap Hotel",
-                BigDecimal.valueOf(200),
-                "Str. B 2",
-                "Cluj"
+            "Cheap Hotel",
+            BigDecimal.valueOf(200),
+            "Str. B 2",
+            "Cluj"
         );
 
         mockMvc.perform(
-                        get("/accommodations")
-                                .param("city", "Cluj")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].name").value("Cheap Hotel"))
-                .andExpect(jsonPath("$[0].pricePerNight").value(200))
-                .andExpect(jsonPath("$[1].name").value("Expensive Hotel"))
-                .andExpect(jsonPath("$[1].pricePerNight").value(500));
+                get("/accommodations")
+                    .param("city", "Cluj")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].name").value("Cheap Hotel"))
+            .andExpect(jsonPath("$[0].pricePerNight").value(200))
+            .andExpect(jsonPath("$[1].name").value("Expensive Hotel"))
+            .andExpect(jsonPath("$[1].pricePerNight").value(500));
     }
 
     @Test
     void findByCity_shouldIgnoreCase() throws Exception {
         createAccommodation(
-                "Hotel Central",
-                BigDecimal.valueOf(250),
-                "Str. Memorandumului 10",
-                "Cluj"
+            "Hotel Central",
+            BigDecimal.valueOf(250),
+            "Str. Memorandumului 10",
+            "Cluj"
         );
 
         mockMvc.perform(
-                        get("/accommodations")
-                                .param("city", "cluj")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Hotel Central"));
+                get("/accommodations")
+                    .param("city", "cluj")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].name").value("Hotel Central"));
     }
 
     private UUID createAccommodation() throws Exception {
         return createAccommodation(
-                "Hotel Central",
-                BigDecimal.valueOf(250),
-                "Str. Memorandumului 10",
-                "Cluj"
+            "Hotel Central",
+            BigDecimal.valueOf(250),
+            "Str. Memorandumului 10",
+            "Cluj"
         );
     }
 
     private UUID createAccommodation(
-            String name,
-            BigDecimal price,
-            String address,
-            String city
+        String name,
+        BigDecimal price,
+        String address,
+        String city
     ) throws Exception {
 
         AccommodationRequest request = new AccommodationRequest(
-                name,
-                price,
-                address,
-                city
+            name,
+            price,
+            address,
+            city
         );
 
         String response = mockMvc.perform(
-                        post("/accommodations")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                )
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                post("/accommodations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
 
         return UUID.fromString(
-                objectMapper.readTree(response).asText()
+            objectMapper.readTree(response).asText()
         );
     }
 }
