@@ -1,7 +1,9 @@
 package integra.vacation_planner_backend.controller;
 
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.service.TripService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +36,7 @@ public class TripController {
     }
 
     @GetMapping
-    public List<Trip> getTrips(
+    public List<TripResponse> getTrips(
             @RequestParam String username,
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate
