@@ -1,9 +1,10 @@
 package integra.vacation_planner_backend.controller;
 
-import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.service.TripService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,13 +95,33 @@ class TripControllerTest {
     }
 
     @Test
+    void createTrip_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+        TripDTO dto = new TripDTO();
+        dto.setUsername("unknown");
+        dto.setDestination("Paris");
+        dto.setStartDate(LocalDate.of(2026, 6, 10));
+        dto.setEndDate(LocalDate.of(2026, 6, 15));
+
+        when(tripService.createTrip(any(TripDTO.class)))
+            .thenThrow(new UserNotFoundException("User not found"));
+
+        mockMvc.perform(post("/trips")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.detail").value("User not found"));
+    }
+
+    @Test
     void getTrips_shouldReturnTrips() throws Exception {
-        Trip trip = new Trip();
-        trip.setId(UUID.randomUUID());
-        trip.setUsername("bob");
-        trip.setDestination("Paris");
-        trip.setStartDate(LocalDate.of(2026, 6, 10));
-        trip.setEndDate(LocalDate.of(2026, 6, 15));
+        TripResponse trip = new TripResponse(
+            UUID.randomUUID(),
+            "Paris",
+            LocalDate.of(2026, 6, 10),
+            LocalDate.of(2026, 6, 15),
+            "bob"
+        );
 
         when(tripService.getTripsBetweenDates(
             eq("bob"),
@@ -113,9 +134,27 @@ class TripControllerTest {
                 .param("startDate", "2026-06-01")
                 .param("endDate", "2026-06-30"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value(trip.getId().toString()))
+            .andExpect(jsonPath("$[0].id").value(trip.id().toString()))
             .andExpect(jsonPath("$[0].username").value("bob"))
-            .andExpect(jsonPath("$[0].destination").value("Paris"));
+            .andExpect(jsonPath("$[0].destination").value("Paris"))
+            .andExpect(jsonPath("$[0].startDate").value("2026-06-10"))
+            .andExpect(jsonPath("$[0].endDate").value("2026-06-15"));
+    }
+
+    @Test
+    void getTrips_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+        when(tripService.getTripsBetweenDates(
+            eq("unknown"),
+            any(LocalDate.class),
+            any(LocalDate.class)
+        )).thenThrow(new UserNotFoundException("User not found"));
+
+        mockMvc.perform(get("/trips")
+                .param("username", "unknown")
+                .param("startDate", "2026-06-01")
+                .param("endDate", "2026-06-30"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.detail").value("User not found"));
     }
 
     @Test
