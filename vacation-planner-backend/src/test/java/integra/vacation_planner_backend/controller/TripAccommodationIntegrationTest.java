@@ -2,9 +2,11 @@ package integra.vacation_planner_backend.controller;
 
 import integra.vacation_planner_backend.domain.Accommodation;
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +19,10 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,6 +47,9 @@ class TripAccommodationIntegrationTest {
     @Autowired
     private AccommodationRepository accommodationRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @BeforeEach
     void setUp() {
         tripRepository.deleteAll();
@@ -53,8 +60,17 @@ class TripAccommodationIntegrationTest {
     void addListAndRemoveAccommodation_shouldKeepAccommodationInCatalog()
         throws Exception {
 
+        String username = "test_" + UUID.randomUUID().toString().substring(0, 8);
+
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(username + "@example.com");
+        user.setFirstName("Test");
+        user.setLastName("User");
+        user = userRepository.save(user);
+
         Trip trip = new Trip();
-        trip.setUsername("bob");
+        trip.setUser(user);
         trip.setDestination("Cluj");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
@@ -68,12 +84,13 @@ class TripAccommodationIntegrationTest {
         accommodation = accommodationRepository.save(accommodation);
 
         TripAccommodationRequest request = new TripAccommodationRequest(
-            "bob",
+            username,
             accommodation.getId()
         );
 
         mockMvc.perform(
                 post("/trips/" + trip.getId() + "/accommodations")
+                    .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
             )
@@ -82,7 +99,7 @@ class TripAccommodationIntegrationTest {
 
         mockMvc.perform(
                 get("/trips/" + trip.getId() + "/accommodations")
-                    .param("username", "bob")
+                    .param("username", username)
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
@@ -97,9 +114,17 @@ class TripAccommodationIntegrationTest {
                     "/trips/" + trip.getId()
                         + "/accommodations/" + accommodation.getId()
                 )
-                    .param("username", "bob")
+                    .with(csrf())
+                    .param("username", username)
             )
             .andExpect(status().isOk());
+
+        mockMvc.perform(
+                get("/trips/" + trip.getId() + "/accommodations")
+                    .param("username", username)
+            )
+            .andExpect(status().isOk())
+            .andExpect(content().json("[]"));
 
         assertTrue(
             accommodationRepository.findById(accommodation.getId()).isPresent()

@@ -2,18 +2,22 @@ package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.domain.Accommodation;
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.ForbiddenException;
 import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -27,9 +31,16 @@ public class TripService {
 
     private final AccommodationRepository accommodationRepository;
 
-    public TripService(TripRepository tripRepository, AccommodationRepository accommodationRepository) {
+    private final UserRepository userRepository;
+
+    public TripService(
+        TripRepository tripRepository,
+        AccommodationRepository accommodationRepository,
+        UserRepository userRepository
+    ) {
         this.tripRepository = tripRepository;
         this.accommodationRepository = accommodationRepository;
+        this.userRepository = userRepository;
     }
 
     public UUID createTrip(TripDTO dto) {
@@ -49,17 +60,23 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
+        User user = findUser(dto.getUsername());
+
         Trip trip = new Trip();
         trip.setDestination(dto.getDestination());
         trip.setStartDate(dto.getStartDate());
         trip.setEndDate(dto.getEndDate());
-        trip.setUsername(dto.getUsername());
+        trip.setUser(user);
 
         return tripRepository.save(trip).getId();
     }
 
-    public List<Trip> getTripsBetweenDates(String username, LocalDate startDate, LocalDate endDate) {
-        if (username.isBlank()) {
+    public List<TripResponse> getTripsBetweenDates(
+        String username,
+        LocalDate startDate,
+        LocalDate endDate
+    ) {
+        if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("username is required");
         }
 
@@ -67,13 +84,24 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
-        return tripRepository.findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-            username,
-            startDate,
-            endDate
-        );
+        User user = findUser(username);
+
+        return tripRepository
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                user, startDate, endDate
+            )
+            .stream()
+            .map(trip -> new TripResponse(
+                trip.getId(),
+                user.getUsername(),
+                trip.getDestination(),
+                trip.getStartDate(),
+                trip.getEndDate()
+            ))
+            .toList();
     }
 
+    @Transactional
     public void updateTrip(UUID tripId, TripDTO dto) {
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new TripNotFoundException("Trip not found"));
@@ -82,7 +110,7 @@ public class TripService {
             throw new IllegalArgumentException("username is required");
         }
 
-        if (!trip.getUsername().equals(dto.getUsername())) {
+        if (!trip.getUser().getUsername().equals(dto.getUsername())) {
             throw new UnauthorizedTripAccessException("Not allowed to update this trip");
         }
 
@@ -105,17 +133,12 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
-        if (dto.getStartDate() != null) {
-            trip.setStartDate(dto.getStartDate());
-        }
-
-        if (dto.getEndDate() != null) {
-            trip.setEndDate(dto.getEndDate());
-        }
-
+        trip.setStartDate(newStartDate);
+        trip.setEndDate(newEndDate);
         tripRepository.save(trip);
     }
 
+    @Transactional
     public void deleteTrip(UUID tripId, String username) {
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new TripNotFoundException("Trip not found"));
@@ -124,21 +147,23 @@ public class TripService {
             throw new IllegalArgumentException("username is required");
         }
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new UnauthorizedTripAccessException("Not allowed to delete this trip");
         }
 
         tripRepository.delete(trip);
     }
 
+    @Transactional
     public void addAccommodationToTrip(UUID tripId, TripAccommodationRequest request) {
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new NotFoundException("Trip not found"));
 
-        Accommodation accommodation = accommodationRepository.findById(request.accommodationId())
+        Accommodation accommodation = accommodationRepository
+            .findById(request.accommodationId())
             .orElseThrow(() -> new NotFoundException("Accommodation not found"));
 
-        if (!trip.getUsername().equals(request.username())) {
+        if (!trip.getUser().getUsername().equals(request.username())) {
             throw new ForbiddenException("User is not the owner of this trip");
         }
 
@@ -150,15 +175,20 @@ public class TripService {
         tripRepository.save(trip);
     }
 
-    public List<TripAccommodationResponse> getTripAccommodations(UUID tripId, String username) {
+    @Transactional
+    public List<TripAccommodationResponse> getTripAccommodations(
+        UUID tripId,
+        String username
+    ) {
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new NotFoundException("Trip not found"));
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("User is not the owner of this trip");
         }
 
-        return trip.getAccommodations().stream()
+        return trip.getAccommodations()
+            .stream()
             .sorted(Comparator.comparing(Accommodation::getPricePerNight))
             .map(accommodation -> new TripAccommodationResponse(
                 accommodation.getId(),
@@ -170,11 +200,16 @@ public class TripService {
             .toList();
     }
 
-    public void removeAccommodationFromTrip(UUID tripId, UUID accommodationId, String username) {
+    @Transactional
+    public void removeAccommodationFromTrip(
+        UUID tripId,
+        UUID accommodationId,
+        String username
+    ) {
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new NotFoundException("Trip not found"));
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("User is not the owner of this trip");
         }
 
@@ -187,5 +222,10 @@ public class TripService {
 
         trip.getAccommodations().remove(accommodation);
         tripRepository.save(trip);
+    }
+
+    private User findUser(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 }

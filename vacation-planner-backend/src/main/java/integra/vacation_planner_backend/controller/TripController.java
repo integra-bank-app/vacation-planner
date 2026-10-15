@@ -41,16 +41,7 @@ public class TripController {
         @RequestParam LocalDate startDate,
         @RequestParam LocalDate endDate
     ) {
-        return tripService.getTripsBetweenDates(username, startDate, endDate)
-            .stream()
-            .map(trip -> new TripResponse(
-                trip.getId(),
-                trip.getUsername(),
-                trip.getDestination(),
-                trip.getStartDate(),
-                trip.getEndDate()
-            ))
-            .toList();
+        return tripService.getTripsBetweenDates(username, startDate, endDate);
     }
 
     @PutMapping("/{tripId}")

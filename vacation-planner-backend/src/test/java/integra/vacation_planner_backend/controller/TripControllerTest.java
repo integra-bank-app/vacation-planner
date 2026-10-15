@@ -117,10 +117,10 @@ class TripControllerTest {
     void getTrips_shouldReturnTrips() throws Exception {
         TripResponse trip = new TripResponse(
             UUID.randomUUID(),
+            "bob",
             "Paris",
             LocalDate.of(2026, 6, 10),
-            LocalDate.of(2026, 6, 15),
-            "bob"
+            LocalDate.of(2026, 6, 15)
         );
 
         when(tripService.getTripsBetweenDates(
