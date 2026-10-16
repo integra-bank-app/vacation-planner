@@ -1,5 +1,6 @@
 package integra.vacation_planner_backend.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record FlightRequest(
@@ -8,6 +9,7 @@ public record FlightRequest(
         String arrivalAirportCode,
         Instant departureTime,
         Instant arrivalTime,
-        Integer numberOfSeats
+        Integer numberOfSeats,
+        BigDecimal price
 ) {
 }

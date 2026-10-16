@@ -8,11 +8,15 @@ import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.repository.FlightRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
@@ -33,7 +37,10 @@ class FlightServiceTest {
         FlightRequest request = validRequest();
         when(flightRepository.findByFlightNumber("W43381")).thenReturn(Optional.empty());
         flightService.createFlight(request);
-        verify(flightRepository).save(any(Flight.class));
+
+        ArgumentCaptor<Flight> captor = ArgumentCaptor.forClass(Flight.class);
+        verify(flightRepository).save(captor.capture());
+        assertEquals(new BigDecimal("150.00"), captor.getValue().getPrice());
     }
 
     @Test
@@ -47,12 +54,13 @@ class FlightServiceTest {
     @Test
     void createFlight_invalidSeats_throwsValidationException() {
         FlightRequest request = new FlightRequest(
-                "W43381",
-                "CLJ",
-                "FCO",
-                Instant.parse("2026-10-10T08:00:00Z"),
-                Instant.parse("2026-10-10T10:00:00Z"),
-                0
+            "W43381",
+            "CLJ",
+            "FCO",
+            Instant.parse("2026-10-10T08:00:00Z"),
+            Instant.parse("2026-10-10T10:00:00Z"),
+            0,
+            new BigDecimal("150.00")
         );
         assertThrows(ValidationException.class, () -> flightService.createFlight(request));
     }
@@ -60,14 +68,50 @@ class FlightServiceTest {
     @Test
     void createFlight_arrivalBeforeDeparture_throwsValidationException() {
         FlightRequest request = new FlightRequest(
-                "W43381",
-                "CLJ",
-                "FCO",
-                Instant.parse("2026-10-10T10:00:00Z"),
-                Instant.parse("2026-10-10T08:00:00Z"),
-                180
+            "W43381",
+            "CLJ",
+            "FCO",
+            Instant.parse("2026-10-10T10:00:00Z"),
+            Instant.parse("2026-10-10T08:00:00Z"),
+            180,
+            new BigDecimal("150.00")
         );
         assertThrows(ValidationException.class, () -> flightService.createFlight(request));
+    }
+
+    @Test
+    void createFlight_missingPrice_throwsValidationException() {
+        FlightRequest request = requestWithPrice(null);
+        assertThrows(ValidationException.class, () -> flightService.createFlight(request));
+        verify(flightRepository, never()).save(any(Flight.class));
+    }
+
+    @Test
+    void createFlight_zeroPrice_throwsValidationException() {
+        FlightRequest request = requestWithPrice(BigDecimal.ZERO);
+        assertThrows(ValidationException.class, () -> flightService.createFlight(request));
+        verify(flightRepository, never()).save(any(Flight.class));
+    }
+
+    @Test
+    void createFlight_negativePrice_throwsValidationException() {
+        FlightRequest request = requestWithPrice(new BigDecimal("-10.00"));
+        assertThrows(ValidationException.class, () -> flightService.createFlight(request));
+        verify(flightRepository, never()).save(any(Flight.class));
+    }
+
+    @Test
+    void updateFlight_newPrice_savesFlightWithNewPrice() {
+        Flight existing = new Flight();
+        existing.setFlightNumber("W43381");
+        existing.setPrice(new BigDecimal("150.00"));
+        when(flightRepository.findByFlightNumber("W43381")).thenReturn(Optional.of(existing));
+
+        flightService.updateFlight(requestWithPrice(new BigDecimal("199.99")));
+
+        ArgumentCaptor<Flight> captor = ArgumentCaptor.forClass(Flight.class);
+        verify(flightRepository).save(captor.capture());
+        assertEquals(new BigDecimal("199.99"), captor.getValue().getPrice());
     }
 
     @Test
@@ -89,13 +133,18 @@ class FlightServiceTest {
     }
 
     private FlightRequest validRequest() {
+        return requestWithPrice(new BigDecimal("150.00"));
+    }
+
+    private FlightRequest requestWithPrice(BigDecimal price) {
         return new FlightRequest(
-                "W43381",
-                "CLJ",
-                "FCO",
-                Instant.parse("2026-10-10T08:00:00Z"),
-                Instant.parse("2026-10-10T10:00:00Z"),
-                180
+            "W43381",
+            "CLJ",
+            "FCO",
+            Instant.parse("2026-10-10T08:00:00Z"),
+            Instant.parse("2026-10-10T10:00:00Z"),
+            180,
+            price
         );
     }
 }

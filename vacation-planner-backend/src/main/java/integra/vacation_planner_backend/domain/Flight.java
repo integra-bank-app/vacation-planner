@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -40,4 +41,7 @@ public class Flight {
 
     @Column(nullable = false)
     private Integer numberOfSeats;
+
+    @Column(nullable = false)
+    private BigDecimal price;
 }

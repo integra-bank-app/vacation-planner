@@ -8,6 +8,8 @@ import integra.vacation_planner_backend.exception.ValidationException;
 import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.repository.FlightRepository;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -34,6 +36,7 @@ public class FlightService {
         flight.setDepartureTime(request.departureTime());
         flight.setArrivalTime(request.arrivalTime());
         flight.setNumberOfSeats(request.numberOfSeats());
+        flight.setPrice(request.price());
 
         return flightRepository.save(flight);
     }
@@ -59,7 +62,8 @@ public class FlightService {
                 flight.getDepartureAirportCode(),
                 flight.getArrivalAirportCode(),
                 flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault())
+                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+                flight.getPrice()
         );
     }
 
@@ -74,6 +78,7 @@ public class FlightService {
         flight.setDepartureTime(request.departureTime());
         flight.setArrivalTime(request.arrivalTime());
         flight.setNumberOfSeats(request.numberOfSeats());
+        flight.setPrice(request.price());
 
         return flightRepository.save(flight);
     }
@@ -112,6 +117,10 @@ public class FlightService {
 
         if (request.numberOfSeats() == null || request.numberOfSeats() <= 0) {
             throw new ValidationException("Number of seats must be greater than 0");
+        }
+
+        if (request.price() == null || request.price().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Price must be greater than 0");
         }
     }
 }
