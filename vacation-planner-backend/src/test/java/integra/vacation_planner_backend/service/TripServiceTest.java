@@ -19,6 +19,11 @@ import integra.vacation_planner_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import integra.vacation_planner_backend.dto.PageResponse;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -203,14 +208,25 @@ class TripServiceTest {
         LocalDate to = LocalDate.of(2026, 6, 30);
         Trip trip = ownedTrip();
 
+        PageRequest pageable = PageRequest.of(
+            1,
+            10,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
+
         when(userRepository.findByUsername("bob"))
             .thenReturn(Optional.of(bob));
         when(tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-            bob, from, to
-        )).thenReturn(List.of(trip));
+            bob, from, to, pageable
+        )).thenReturn(
+            new PageImpl<>(List.of(trip), pageable, 25)
+        );
 
-        List<TripResponse> result =
-            tripService.getTripsBetweenDates("bob", from, to);
+        PageResponse<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to, 1, 10);
 
         assertEquals(
             List.of(new TripResponse(
@@ -220,12 +236,16 @@ class TripServiceTest {
                 trip.getStartDate(),
                 trip.getEndDate()
             )),
-            result
+            result.content()
         );
+        assertEquals(1, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
 
         verify(tripRepository)
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                bob, from, to
+                bob, from, to, pageable
             );
     }
 
@@ -236,12 +256,15 @@ class TripServiceTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> tripService.getTripsBetweenDates("   ", from, to)
+            () -> tripService.getTripsBetweenDates("   ", from, to, 0, 10)
         );
 
         verify(tripRepository, never())
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                any(User.class), any(LocalDate.class), any(LocalDate.class)
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
@@ -252,12 +275,15 @@ class TripServiceTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> tripService.getTripsBetweenDates("bob", from, to)
+            () -> tripService.getTripsBetweenDates("bob", from, to, 0, 10)
         );
 
         verify(tripRepository, never())
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                any(User.class), any(LocalDate.class), any(LocalDate.class)
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
@@ -271,34 +297,110 @@ class TripServiceTest {
 
         assertThrows(
             UserNotFoundException.class,
-            () -> tripService.getTripsBetweenDates("unknown", from, to)
+            () -> tripService.getTripsBetweenDates("unknown", from, to, 0, 10)
         );
 
         verify(tripRepository, never())
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                any(User.class), any(LocalDate.class), any(LocalDate.class)
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
     @Test
-    void getTripsBetweenDates_shouldReturnEmptyListWhenNoTripsFound() {
+    void getTripsBetweenDates_shouldReturnEmptyPageWhenNoTripsFound() {
         LocalDate from = LocalDate.of(2026, 6, 1);
         LocalDate to = LocalDate.of(2026, 6, 30);
+
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
 
         when(userRepository.findByUsername("bob"))
             .thenReturn(Optional.of(bob));
         when(tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-            bob, from, to
-        )).thenReturn(List.of());
+            bob, from, to, pageable
+        )).thenReturn(
+            new PageImpl<Trip>(List.of(), pageable, 0)
+        );
 
-        List<TripResponse> result =
-            tripService.getTripsBetweenDates("bob", from, to);
+        PageResponse<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to, 0, 10);
 
-        assertTrue(result.isEmpty());
+        assertTrue(result.content().isEmpty());
+        assertEquals(0, result.page());
+        assertEquals(10, result.size());
+        assertEquals(0L, result.totalElements());
+        assertEquals(0, result.totalPages());
 
         verify(tripRepository)
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                bob, from, to
+                bob, from, to, pageable
+            );
+    }
+
+    @Test
+    void getTripsBetweenDates_pageBeyondEnd_keepsTotals() {
+        LocalDate from = LocalDate.of(2026, 6, 1);
+        LocalDate to = LocalDate.of(2026, 6, 30);
+
+        PageRequest pageable = PageRequest.of(
+            3,
+            10,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(userRepository.findByUsername("bob"))
+            .thenReturn(Optional.of(bob));
+        when(tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+            bob, from, to, pageable
+        )).thenReturn(
+            new PageImpl<Trip>(List.of(), pageable, 25)
+        );
+
+        PageResponse<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to, 3, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(3, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+    }
+
+    @Test
+    void getTripsBetweenDates_shouldRejectInvalidPagination() {
+        LocalDate from = LocalDate.of(2026, 6, 1);
+        LocalDate to = LocalDate.of(2026, 6, 30);
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripsBetweenDates("bob", from, to, -1, 10)
+        );
+
+        for (int size : List.of(-1, 0, 1, 7, 15, 101)) {
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> tripService.getTripsBetweenDates("bob", from, to, 0, size)
+            );
+        }
+
+        verify(tripRepository, never())
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
@@ -559,35 +661,46 @@ class TripServiceTest {
     }
 
     @Test
-    void getTripAccommodations_shouldReturnAccommodationsSortedByPrice() {
+    void getTripAccommodations_shouldUseDatabasePaginationAndNameSort() {
         Trip trip = storedTrip();
-        Accommodation expensive = accommodation("Expensive Hotel", 500);
-        Accommodation cheap = accommodation("Cheap Hotel", 200);
-        trip.getAccommodations().add(expensive);
-        trip.getAccommodations().add(cheap);
+        Accommodation accommodation = accommodation("Alpha Hotel", 500);
 
-        List<TripAccommodationResponse> result =
-            tripService.getTripAccommodations(trip.getId(), "bob");
+        PageRequest pageable = PageRequest.of(
+            1,
+            5,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(tripRepository.findAccommodationsByTripId(trip.getId(), pageable))
+            .thenReturn(new PageImpl<>(
+                List.of(accommodation),
+                pageable,
+                6
+            ));
+
+        PageResponse<TripAccommodationResponse> result =
+            tripService.getTripAccommodations(trip.getId(), "bob", 1, 5);
 
         assertEquals(
-            List.of(
-                new TripAccommodationResponse(
-                    cheap.getId(),
-                    cheap.getName(),
-                    cheap.getAddress(),
-                    cheap.getCity(),
-                    cheap.getPricePerNight()
-                ),
-                new TripAccommodationResponse(
-                    expensive.getId(),
-                    expensive.getName(),
-                    expensive.getAddress(),
-                    expensive.getCity(),
-                    expensive.getPricePerNight()
-                )
-            ),
-            result
+            List.of(new TripAccommodationResponse(
+                accommodation.getId(),
+                accommodation.getName(),
+                accommodation.getAddress(),
+                accommodation.getCity(),
+                accommodation.getPricePerNight()
+            )),
+            result.content()
         );
+        assertEquals(1, result.page());
+        assertEquals(5, result.size());
+        assertEquals(6L, result.totalElements());
+        assertEquals(2, result.totalPages());
+
+        verify(tripRepository)
+            .findAccommodationsByTripId(trip.getId(), pageable);
     }
 
     @Test
@@ -596,8 +709,11 @@ class TripServiceTest {
 
         assertThrows(
             ForbiddenException.class,
-            () -> tripService.getTripAccommodations(trip.getId(), "alice")
+            () -> tripService.getTripAccommodations(trip.getId(), "alice", 0, 10)
         );
+
+        verify(tripRepository, never())
+            .findAccommodationsByTripId(any(UUID.class), any(Pageable.class));
     }
 
     @Test
@@ -609,8 +725,64 @@ class TripServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> tripService.getTripAccommodations(tripId, "bob")
+            () -> tripService.getTripAccommodations(tripId, "bob", 0, 10)
         );
+
+        verify(tripRepository, never())
+            .findAccommodationsByTripId(any(UUID.class), any(Pageable.class));
+    }
+
+    @Test
+    void getTripAccommodations_pageBeyondEnd_keepsTotals() {
+        Trip trip = storedTrip();
+
+        PageRequest pageable = PageRequest.of(
+            3,
+            10,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(tripRepository.findAccommodationsByTripId(trip.getId(), pageable))
+            .thenReturn(new PageImpl<Accommodation>(
+                List.of(),
+                pageable,
+                25
+            ));
+
+        PageResponse<TripAccommodationResponse> result =
+            tripService.getTripAccommodations(trip.getId(), "bob", 3, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(3, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+
+        verify(tripRepository)
+            .findAccommodationsByTripId(trip.getId(), pageable);
+    }
+
+    @Test
+    void getTripAccommodations_shouldRejectInvalidPagination() {
+        UUID tripId = UUID.randomUUID();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripAccommodations(tripId, "bob", -1, 10)
+        );
+
+        for (int size : List.of(-1, 0, 1, 7, 15, 101)) {
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> tripService.getTripAccommodations(tripId, "bob", 0, size)
+            );
+        }
+
+        verify(tripRepository, never())
+            .findAccommodationsByTripId(any(UUID.class), any(Pageable.class));
     }
 
     @Test

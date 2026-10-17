@@ -1,15 +1,20 @@
 package integra.vacation_planner_backend.service;
 
+import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.dto.FlightRequest;
 import integra.vacation_planner_backend.dto.FlightResponse;
+import integra.vacation_planner_backend.dto.PageResponse;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.ValidationException;
-import integra.vacation_planner_backend.domain.Flight;
+import integra.vacation_planner_backend.pagination.Pagination;
 import integra.vacation_planner_backend.repository.FlightRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
 import java.time.ZoneId;
-import java.util.List;
 
 @Service
 public class FlightService {
@@ -38,28 +43,48 @@ public class FlightService {
         return flightRepository.save(flight);
     }
 
-    public List<FlightResponse> getFlights(String airportCode) {
+    public PageResponse<FlightResponse> getFlights(
+        String airportCode,
+        int page,
+        int size
+    ) {
         if (airportCode == null || airportCode.isBlank()) {
             throw new ValidationException("Airport code is required");
         }
 
-        List<Flight> flights = flightRepository.findByDepartureAirportCodeOrArrivalAirportCode(
-                airportCode,
-                airportCode
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
         );
 
-        return flights.stream()
-                .map(this::toResponse)
-                .toList();
+        Page<FlightResponse> flights = flightRepository
+            .findByDepartureAirportCodeOrArrivalAirportCode(
+                airportCode,
+                airportCode,
+                pageable
+            )
+            .map(this::toResponse);
+
+        return new PageResponse<>(
+            flights.getContent(),
+            flights.getNumber(),
+            flights.getSize(),
+            flights.getTotalElements(),
+            flights.getTotalPages()
+        );
     }
 
     private FlightResponse toResponse(Flight flight) {
         return new FlightResponse(
-                flight.getFlightNumber(),
-                flight.getDepartureAirportCode(),
-                flight.getArrivalAirportCode(),
-                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault())
+            flight.getFlightNumber(),
+            flight.getDepartureAirportCode(),
+            flight.getArrivalAirportCode(),
+            flight.getDepartureTime().atZone(ZoneId.systemDefault()),
+            flight.getArrivalTime().atZone(ZoneId.systemDefault())
         );
     }
 
@@ -67,7 +92,7 @@ public class FlightService {
         validateFlight(request);
 
         Flight flight = flightRepository.findByFlightNumber(request.flightNumber())
-                .orElseThrow(() -> new NotFoundException("Flight not found"));
+            .orElseThrow(() -> new NotFoundException("Flight not found"));
 
         flight.setDepartureAirportCode(request.departureAirportCode());
         flight.setArrivalAirportCode(request.arrivalAirportCode());
@@ -84,7 +109,7 @@ public class FlightService {
         }
 
         Flight flight = flightRepository.findByFlightNumber(flightNumber)
-                .orElseThrow(() -> new NotFoundException("Flight not found"));
+            .orElseThrow(() -> new NotFoundException("Flight not found"));
 
         flightRepository.delete(flight);
     }

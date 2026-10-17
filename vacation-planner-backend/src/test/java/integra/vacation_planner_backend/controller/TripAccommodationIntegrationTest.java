@@ -102,12 +102,31 @@ class TripAccommodationIntegrationTest {
                     .param("username", username)
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value(accommodation.getId().toString()))
-            .andExpect(jsonPath("$[0].name").value("Hotel Central"))
-            .andExpect(jsonPath("$[0].address").value("Str. Memorandumului 10"))
-            .andExpect(jsonPath("$[0].city").value("Cluj"))
-            .andExpect(jsonPath("$[0].pricePerNight").value(250));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].id")
+                .value(accommodation.getId().toString()))
+            .andExpect(jsonPath("$.content[0].name").value("Hotel Central"))
+            .andExpect(jsonPath("$.content[0].address")
+                .value("Str. Memorandumului 10"))
+            .andExpect(jsonPath("$.content[0].city").value("Cluj"))
+            .andExpect(jsonPath("$.content[0].pricePerNight").value(250))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.totalPages").value(1));
+
+        mockMvc.perform(
+                get("/trips/" + trip.getId() + "/accommodations")
+                    .param("username", username)
+                    .param("page", "1")
+                    .param("size", "10")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isEmpty())
+            .andExpect(jsonPath("$.page").value(1))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.totalPages").value(1));
 
         mockMvc.perform(
                 delete(
@@ -124,7 +143,11 @@ class TripAccommodationIntegrationTest {
                     .param("username", username)
             )
             .andExpect(status().isOk())
-            .andExpect(content().json("[]"));
+            .andExpect(jsonPath("$.content").isEmpty())
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.totalElements").value(0))
+            .andExpect(jsonPath("$.totalPages").value(0));
 
         assertTrue(
             accommodationRepository.findById(accommodation.getId()).isPresent()
