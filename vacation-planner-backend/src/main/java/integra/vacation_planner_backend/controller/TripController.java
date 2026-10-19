@@ -77,4 +77,13 @@ public class TripController {
     public void deleteTrip(@PathVariable UUID tripId, @RequestParam String username) {
         tripService.deleteTrip(tripId, username);
     }
+
+    @DeleteMapping("/{tripId}/flights/{flightNumber}")
+    public void deleteTripFlight(
+        @PathVariable UUID tripId,
+        @PathVariable String flightNumber,
+        @RequestParam String username
+    ) {
+        tripService.deleteFlightFromTrip(tripId, flightNumber, username);
+    }
 }

@@ -196,4 +196,41 @@ public class TripService {
 
         tripRepository.delete(trip);
     }
+
+    @Transactional
+    public void deleteFlightFromTrip(
+        UUID tripId,
+        String flightNumber,
+        String username
+    ) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!trip.getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "User is not authorized to remove flights from this trip"
+            );
+        }
+
+        if (flightNumber == null || flightNumber.isBlank()) {
+            throw new IllegalArgumentException("Flight number is required");
+        }
+
+        Flight flight = flightRepository.findByFlightNumber(flightNumber)
+            .orElseThrow(() -> new NotFoundException("Flight not found"));
+
+        boolean removed = trip.getFlights().removeIf(
+            existingFlight -> existingFlight.getId().equals(flight.getId())
+        );
+
+        if (!removed) {
+            throw new NotFoundException("Flight is not part of this trip");
+        }
+
+        tripRepository.save(trip);
+    }
 }
