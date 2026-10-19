@@ -1,7 +1,11 @@
 package integra.vacation_planner_backend.service;
 
+import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.exception.ConflictException;
+import integra.vacation_planner_backend.exception.NotFoundException;
+import integra.vacation_planner_backend.repository.FlightRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
@@ -9,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +25,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.anyString;
 
@@ -27,12 +33,15 @@ public class TripServiceTest {
 
     private TripRepository tripRepository;
 
+    private FlightRepository flightRepository;
+
     private TripService tripService;
 
     @BeforeEach
     void setUp() {
         tripRepository = mock(TripRepository.class);
-        tripService = new TripService(tripRepository);
+        flightRepository = mock(FlightRepository.class);
+        tripService = new TripService(tripRepository, flightRepository);
     }
 
 
@@ -533,5 +542,170 @@ public class TripServiceTest {
         );
 
         verify(tripRepository, never()).delete(any(Trip.class));
+    }
+
+    // TESTS FOR ADDING A FLIGHT TO A TRIP
+
+    @Test
+    void addFlightToTrip_shouldAddFlightWhenTripBelongsToUserAndFlightHasSeats() {
+        UUID tripId = UUID.randomUUID();
+        UUID flightId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>());
+
+        Flight flight = new Flight();
+        flight.setId(flightId);
+        flight.setFlightNumber("RO101");
+        flight.setNumberOfSeats(3);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.of(flight));
+        when(tripRepository.countTripsUsingFlight(flightId)).thenReturn(1L);
+
+        tripService.addFlightToTrip(tripId, "bob", "RO101");
+
+        assertTrue(trip.getFlights().contains(flight));
+        verify(tripRepository).save(trip);
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectDuplicateFlight() {
+        UUID tripId = UUID.randomUUID();
+        UUID flightId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Flight flight = new Flight();
+        flight.setId(flightId);
+        flight.setFlightNumber("RO101");
+        flight.setNumberOfSeats(3);
+
+        trip.setFlights(new HashSet<>(List.of(flight)));
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.of(flight));
+
+        assertThrows(ConflictException.class,
+            () -> tripService.addFlightToTrip(tripId, "bob", "RO101"));
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectFullFlight() {
+        UUID tripId = UUID.randomUUID();
+        UUID flightId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>());
+
+        Flight flight = new Flight();
+        flight.setId(flightId);
+        flight.setFlightNumber("RO101");
+        flight.setNumberOfSeats(2);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.of(flight));
+        when(tripRepository.countTripsUsingFlight(flightId)).thenReturn(2L);
+
+        assertThrows(ConflictException.class,
+            () -> tripService.addFlightToTrip(tripId, "bob", "RO101"));
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectTripOwnedByAnotherUser() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("alice");
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        assertThrows(UnauthorizedTripAccessException.class,
+            () -> tripService.addFlightToTrip(tripId, "bob", "RO101"));
+
+        verify(flightRepository, never()).findByFlightNumberForUpdate(anyString());
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
+
+        assertThrows(TripNotFoundException.class,
+            () -> tripService.addFlightToTrip(tripId, "bob", "RO101"));
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectMissingFlight() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>());
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.empty());
+        assertThrows(NotFoundException.class,
+            () -> tripService.addFlightToTrip(tripId, "bob", "RO101"));
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectMissingUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("tudor");
+        trip.setFlights(new HashSet<>());
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.addFlightToTrip(tripId, " ", "RO101")
+        );
+
+        verifyNoInteractions(flightRepository);
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectMissingFlightNumber() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("tudor");
+        trip.setFlights(new HashSet<>());
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.addFlightToTrip(tripId, "tudor", " ")
+        );
+
+        verify(flightRepository, never()).findByFlightNumberForUpdate(anyString());
+        verify(tripRepository, never()).save(any(Trip.class));
     }
 }
