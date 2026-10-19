@@ -3,6 +3,7 @@ package integra.vacation_planner_backend.controller;
 import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.AddFlightToTripRequest;
+import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.service.TripService;
 import org.springframework.http.ResponseEntity;
@@ -60,7 +61,7 @@ public class TripController {
     }
 
     @GetMapping("/{tripId}/flights")
-    public List<Flight> getFlights(
+    public List<FlightResponse> getFlights(
         @PathVariable UUID tripId,
         @RequestParam String username
     ) {
