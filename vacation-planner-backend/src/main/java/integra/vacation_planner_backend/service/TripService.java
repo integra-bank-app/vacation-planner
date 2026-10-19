@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +59,27 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
         return tripRepository.findByUsernameAndStartDateGreaterThanEqualAndEndDateLessThanEqual(username, startDate, endDate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Flight> getTripFlights(UUID tripId, String username) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!trip.getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "User is not authorized to view the flights for this trip"
+            );
+        }
+
+        return trip.getFlights().stream()
+            .sorted(Comparator.comparing(Flight::getDepartureTime))
+            .toList();
+
     }
 
     public void updateTrip(UUID tripId, TripDTO dto) {

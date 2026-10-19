@@ -1,5 +1,6 @@
 package integra.vacation_planner_backend.controller;
 
+import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.AddFlightToTripRequest;
 import integra.vacation_planner_backend.dto.TripDTO;
@@ -56,6 +57,14 @@ public class TripController {
             @RequestParam LocalDate endDate
     ) {
         return tripService.getTripsBetweenDates(username, startDate, endDate);
+    }
+
+    @GetMapping("/{tripId}/flights")
+    public List<Flight> getFlights(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripService.getTripFlights(tripId, username);
     }
 
     @PutMapping("/{tripId}")
