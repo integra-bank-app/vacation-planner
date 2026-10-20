@@ -1,0 +1,39 @@
+name: Notify Discord about pull requests
+
+on:
+  pull_request:
+    types: [opened, closed]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        if: github.event.action == 'opened' || github.event.pull_request.merged == true
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const isMerged = pr.merged === true;
+            const message = isMerged
+              ? `✅ **Pull request merged:** [${pr.title}](${pr.html_url})\n` +
+                `By ${pr.user.login} • merged into ${pr.base.ref}`
+              : `📣 **Pull request opened:** [${pr.title}](${pr.html_url})\n` +
+                `By ${pr.user.login} • ${pr.base.ref}`;
+
+            const response = await fetch(process.env.DISCORD_WEBHOOK_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: message,
+                allowed_mentions: { parse: [] }
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error(`Discord webhook failed: ${response.status}`);
+            }
