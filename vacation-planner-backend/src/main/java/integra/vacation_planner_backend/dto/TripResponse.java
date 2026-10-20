@@ -5,9 +5,9 @@ import java.util.UUID;
 
 public record TripResponse(
     UUID id,
+    String username,
     String destination,
     LocalDate startDate,
-    LocalDate endDate,
-    String username
+    LocalDate endDate
 ) {
 }
