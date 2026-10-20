@@ -2,6 +2,7 @@ package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
@@ -12,7 +13,9 @@ import integra.vacation_planner_backend.exception.UnauthorizedTripAccessExceptio
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -707,5 +710,129 @@ public class TripServiceTest {
 
         verify(flightRepository, never()).findByFlightNumberForUpdate(anyString());
         verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void getTripFlights_shouldReturnFlightsSortedByDepartureTime() {
+        UUID tripId = UUID.randomUUID();
+
+        Flight laterFlight = new Flight();
+        laterFlight.setId(UUID.randomUUID());
+        laterFlight.setFlightNumber("RO202");
+        laterFlight.setDepartureAirportCode("OTP");
+        laterFlight.setArrivalAirportCode("LHR");
+        laterFlight.setDepartureTime(Instant.parse("2026-11-10T14:00:00Z"));
+        laterFlight.setArrivalTime(Instant.parse("2026-11-10T16:00:00Z"));
+
+        Flight earlierFlight = new Flight();
+        earlierFlight.setId(UUID.randomUUID());
+        earlierFlight.setFlightNumber("RO101");
+        earlierFlight.setDepartureAirportCode("OTP");
+        earlierFlight.setArrivalAirportCode("CDG");
+        earlierFlight.setDepartureTime(Instant.parse("2026-11-10T09:00:00Z"));
+        earlierFlight.setArrivalTime(Instant.parse("2026-11-10T11:00:00Z"));
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>(List.of(laterFlight, earlierFlight)));
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        List<FlightResponse> result = tripService.getTripFlights(tripId, "bob");
+
+        assertEquals(2, result.size());
+
+        // Flights are sorted by departure time
+        assertEquals("RO101", result.get(0).flightNumber());
+        assertEquals("RO202", result.get(1).flightNumber());
+
+        // DTO fields are mapped correctly
+        assertEquals("OTP", result.get(0).departureAirport());
+        assertEquals("CDG", result.get(0).arrivalAirport());
+        assertEquals(
+            earlierFlight.getDepartureTime().atZone(ZoneId.systemDefault()),
+            result.get(0).departureTime()
+        );
+        assertEquals(
+            earlierFlight.getArrivalTime().atZone(ZoneId.systemDefault()),
+            result.get(0).arrivalTime()
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldReturnEmptyListWhenTripHasNoFlights() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>());
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        List<FlightResponse> result = tripService.getTripFlights(tripId, "bob");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getTripFlights_shouldRejectWrongUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        assertThrows(
+            UnauthorizedTripAccessException.class,
+            () -> tripService.getTripFlights(tripId, "alice")
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
+
+        assertThrows(
+            TripNotFoundException.class,
+            () -> tripService.getTripFlights(tripId, "bob")
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldRejectBlankUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripFlights(tripId, " ")
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldRejectNullUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripFlights(tripId, null)
+        );
     }
 }
