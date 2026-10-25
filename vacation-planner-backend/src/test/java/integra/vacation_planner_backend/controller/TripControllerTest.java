@@ -216,9 +216,7 @@ class TripControllerTest {
     }
 
     @Test
-    void getTrips_worksForTripsThatHaveFlights() throws Exception {
-        // Trip.flights is LAZY and the entity is returned directly, so this only serialises
-        // because open-in-view is on. If that is ever switched off, this test fails.
+    void getTrips_doesNotExposeTheFlightsCollection() throws Exception {
         String user = unique("carol");
         UUID tripId = createTrip(user, "Paris", START, END);
         Flight flight = saveFlight(unique("FL"), OUT_DEP, OUT_ARR, 5);
@@ -226,7 +224,8 @@ class TripControllerTest {
 
         searchTrips(user, "2027-06-01", "2027-06-30")
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value(tripId.toString()));
+            .andExpect(jsonPath("$[0].id").value(tripId.toString()))
+            .andExpect(jsonPath("$[0].flights").doesNotExist());
     }
 
     @Test
