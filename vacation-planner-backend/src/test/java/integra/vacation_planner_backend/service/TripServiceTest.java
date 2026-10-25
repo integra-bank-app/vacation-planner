@@ -835,4 +835,205 @@ public class TripServiceTest {
             () -> tripService.getTripFlights(tripId, null)
         );
     }
+
+    // TESTS FOR REMOVING A FLIGHT FROM A TRIP
+
+    @Test
+    void deleteFlightFromTrip_shouldRemoveFlightAndKeepOtherFlights() {
+        UUID tripId = UUID.randomUUID();
+        UUID flightId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        Flight flightToRemove = new Flight();
+        flightToRemove.setId(flightId);
+        flightToRemove.setFlightNumber("RO101");
+
+        Flight flightToKeep = new Flight();
+        flightToKeep.setId(UUID.randomUUID());
+        flightToKeep.setFlightNumber("RO202");
+
+        trip.setFlights(new HashSet<>(List.of(flightToRemove, flightToKeep)));
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumber("RO101"))
+            .thenReturn(Optional.of(flightToRemove));
+
+        tripService.deleteFlightFromTrip(tripId, "RO101", "bob");
+
+        assertEquals(1, trip.getFlights().size());
+        assertTrue(trip.getFlights().contains(flightToKeep));
+        assertTrue(trip.getFlights().stream()
+            .noneMatch(f -> f.getId().equals(flightId)));
+
+        verify(tripRepository).save(trip);
+        verify(flightRepository, never()).delete(flightToRemove);
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            TripNotFoundException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectNullUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", null)
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectBlankUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", "   ")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectWrongUsername() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("alice");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        assertThrows(
+            UnauthorizedTripAccessException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectNullFlightNumber() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, null, "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectBlankFlightNumber() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "   ", "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectMissingFlight() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>());
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumber("RO101"))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", "bob")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectFlightNotAssociatedWithTrip() {
+        UUID tripId = UUID.randomUUID();
+
+        Trip trip = new Trip();
+        trip.setId(tripId);
+        trip.setUsername("bob");
+        trip.setFlights(new HashSet<>());
+
+        Flight flight = new Flight();
+        flight.setId(UUID.randomUUID());
+        flight.setFlightNumber("RO101");
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.of(trip));
+        when(flightRepository.findByFlightNumber("RO101"))
+            .thenReturn(Optional.of(flight));
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", "bob")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
 }
