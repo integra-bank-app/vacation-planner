@@ -15,11 +15,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.random.RandomGenerator;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +36,9 @@ class FlightServiceTest {
 
     @InjectMocks
     private FlightService flightService;
+
+    @Mock
+    private RandomGenerator randomGenerator;
 
     @Test
     void createFlight_validRequest_savesFlight() {
@@ -132,6 +140,66 @@ class FlightServiceTest {
         assertThrows(ValidationException.class, () -> flightService.getFlights(""));
     }
 
+    @Test
+    void applyDailyChange_plusTenPercent_increasesPrice() {
+        Flight flight = flightWithPrice("100.00");
+        when(flightRepository.findByDepartureTimeAfter(any(Instant.class))).thenReturn(List.of(flight));
+        when(randomGenerator.nextInt(anyInt(), anyInt())).thenReturn(10);
+
+        flightService.applyDailyChange();
+
+        assertEquals(new BigDecimal("110.00"), flight.getPrice());
+    }
+
+    @Test
+    void applyDailyChange_minusTenPercent_decreasesPrice() {
+        Flight flight = flightWithPrice("100.00");
+        when(flightRepository.findByDepartureTimeAfter(any(Instant.class))).thenReturn(List.of(flight));
+        when(randomGenerator.nextInt(anyInt(), anyInt())).thenReturn(-10);
+
+        flightService.applyDailyChange();
+
+        assertEquals(new BigDecimal("90.00"), flight.getPrice());
+    }
+
+    @Test
+    void applyDailyChange_resultWithManyDecimals_roundsToTwoDecimals() {
+        Flight flight = flightWithPrice("19.99");
+        when(flightRepository.findByDepartureTimeAfter(any(Instant.class))).thenReturn(List.of(flight));
+        when(randomGenerator.nextInt(anyInt(), anyInt())).thenReturn(7);
+
+        flightService.applyDailyChange();
+
+        assertEquals(new BigDecimal("21.39"), flight.getPrice());
+    }
+
+    @Test
+    void applyDailyChange_priceBelowMinimum_keepsMinimumPrice() {
+        Flight flight = flightWithPrice("1.00");
+        when(flightRepository.findByDepartureTimeAfter(any(Instant.class))).thenReturn(List.of(flight));
+        when(randomGenerator.nextInt(anyInt(), anyInt())).thenReturn(-10);
+
+        flightService.applyDailyChange();
+
+        assertEquals(new BigDecimal("1.00"), flight.getPrice());
+    }
+
+    @Test
+    void applyDailyChange_multipleFlights_savesAllWithPercentInRange() {
+        Flight first = flightWithPrice("100.00");
+        Flight second = flightWithPrice("200.00");
+        List<Flight> flights = List.of(first, second);
+        when(flightRepository.findByDepartureTimeAfter(any(Instant.class))).thenReturn(flights);
+        when(randomGenerator.nextInt(anyInt(), anyInt())).thenReturn(5);
+
+        flightService.applyDailyChange();
+
+        verify(randomGenerator, times(2)).nextInt(-10, 11);
+        verify(flightRepository).saveAll(flights);
+        assertEquals(new BigDecimal("105.00"), first.getPrice());
+        assertEquals(new BigDecimal("210.00"), second.getPrice());
+    }
+
     private FlightRequest validRequest() {
         return requestWithPrice(new BigDecimal("150.00"));
     }
@@ -146,5 +214,11 @@ class FlightServiceTest {
             180,
             price
         );
+    }
+
+    private Flight flightWithPrice(String price) {
+        Flight flight = new Flight();
+        flight.setPrice(new BigDecimal(price));
+        return flight;
     }
 }
