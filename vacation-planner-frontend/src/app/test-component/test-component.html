@@ -1,0 +1,25 @@
+<div class="flex justify-center p-8">
+  <p-card header="PrimeNG Colorway Test" class="w-full max-w-md">
+    <div class="flex flex-col gap-4">
+      <label for="destination" class="font-semibold">Destination</label>
+      <input
+        id="destination"
+        type="text"
+        pInputText
+        placeholder="Where do you want to go?"
+        [(ngModel)]="destination"
+      />
+
+      <div class="flex gap-2 flex-wrap">
+        <p-button label="Primary" />
+        <p-button label="Secondary" severity="secondary" />
+        <p-button label="Success" severity="success" />
+        <p-button label="Danger" severity="danger" [outlined]="true" />
+      </div>
+
+      @if (destination()) {
+        <p>Planning a trip to <strong>{{ destination() }}</strong>!</p>
+      }
+    </div>
+  </p-card>
+</div>

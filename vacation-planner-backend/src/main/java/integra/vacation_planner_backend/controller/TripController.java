@@ -2,10 +2,13 @@ package integra.vacation_planner_backend.controller;
 
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripDTO;
+import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.dto.TripRestaurantRequestDTO;
 import integra.vacation_planner_backend.dto.TripRestaurantResponseDTO;
 import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.service.TripService;
+import integra.vacation_planner_backend.dto.TripAccommodationRequest;
+import integra.vacation_planner_backend.dto.TripAccommodationResponse;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 
 import java.time.LocalDate;
 import java.util.List;
@@ -43,10 +45,10 @@ public class TripController {
     }
 
     @GetMapping
-    public List<Trip> getTrips(
-            @RequestParam String username,
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate
+    public List<TripResponse> getTrips(
+        @RequestParam String username,
+        @RequestParam LocalDate startDate,
+        @RequestParam LocalDate endDate
     ) {
         return tripService.getTripsBetweenDates(username, startDate, endDate);
     }
@@ -92,5 +94,30 @@ public class TripController {
         tripRestaurantService.removeRestaurantFromTrip(
             tripId, visitId, username
         );
+    }
+
+    @PostMapping("/{tripId}/accommodations")
+    public void addAccommodationToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody TripAccommodationRequest request
+    ) {
+        tripService.addAccommodationToTrip(tripId, request);
+    }
+
+    @GetMapping("/{tripId}/accommodations")
+    public List<TripAccommodationResponse> getTripAccommodations(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripService.getTripAccommodations(tripId, username);
+    }
+
+    @DeleteMapping("/{tripId}/accommodations/{accommodationId}")
+    public void removeAccommodationFromTrip(
+        @PathVariable UUID tripId,
+        @PathVariable UUID accommodationId,
+        @RequestParam String username
+    ) {
+        tripService.removeAccommodationFromTrip(tripId, accommodationId, username);
     }
 }
