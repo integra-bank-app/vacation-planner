@@ -9,6 +9,12 @@ export type { GetTrips$Params as GetTrips$Params } from './fn/trip-controller/ge
 export { getTrips as getTrips } from './fn/trip-controller/get-trips';
 export type { CreateTrip$Params as CreateTrip$Params } from './fn/trip-controller/create-trip';
 export { createTrip as createTrip } from './fn/trip-controller/create-trip';
+export type { GetTripAccommodations$Params as GetTripAccommodations$Params } from './fn/trip-controller/get-trip-accommodations';
+export { getTripAccommodations as getTripAccommodations } from './fn/trip-controller/get-trip-accommodations';
+export type { AddAccommodationToTrip$Params as AddAccommodationToTrip$Params } from './fn/trip-controller/add-accommodation-to-trip';
+export { addAccommodationToTrip as addAccommodationToTrip } from './fn/trip-controller/add-accommodation-to-trip';
+export type { RemoveAccommodationFromTrip$Params as RemoveAccommodationFromTrip$Params } from './fn/trip-controller/remove-accommodation-from-trip';
+export { removeAccommodationFromTrip as removeAccommodationFromTrip } from './fn/trip-controller/remove-accommodation-from-trip';
 export type { UpdateRestaurant$Params as UpdateRestaurant$Params } from './fn/restaurant-controller/update-restaurant';
 export { updateRestaurant as updateRestaurant } from './fn/restaurant-controller/update-restaurant';
 export type { DeleteRestaurant$Params as DeleteRestaurant$Params } from './fn/restaurant-controller/delete-restaurant';

@@ -7,16 +7,28 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { FlightResponse } from '../../models/flight-response';
+import { PageResponseFlightResponse } from '../../models/page-response-flight-response';
 
 export interface GetFlights$Params {
   airportCode: string;
+
+/**
+ * Page number, starting at 0
+ */
+  page?: number;
+
+/**
+ * Number of items per page
+ */
+  size?: 5 | 10 | 20 | 50 | 100;
 }
 
-export function getFlights(http: HttpClient, rootUrl: string, params: GetFlights$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<FlightResponse>>> {
+export function getFlights(http: HttpClient, rootUrl: string, params: GetFlights$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseFlightResponse>> {
   const rb = new RequestBuilder(rootUrl, getFlights.PATH, 'get');
   if (params) {
     rb.query('airportCode', params.airportCode, {});
+    rb.query('page', params.page, {});
+    rb.query('size', params.size, {});
   }
 
   return http.request(
@@ -24,7 +36,7 @@ export function getFlights(http: HttpClient, rootUrl: string, params: GetFlights
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Array<FlightResponse>>;
+      return r as StrictHttpResponse<PageResponseFlightResponse>;
     })
   );
 }

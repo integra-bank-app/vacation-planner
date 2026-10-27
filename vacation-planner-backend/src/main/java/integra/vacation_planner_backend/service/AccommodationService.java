@@ -1,5 +1,10 @@
 package integra.vacation_planner_backend.service;
 
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.pagination.Pagination;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import integra.vacation_planner_backend.dto.AccommodationRequest;
 import integra.vacation_planner_backend.dto.AccommodationResponse;
 import integra.vacation_planner_backend.domain.Accommodation;
@@ -8,7 +13,6 @@ import integra.vacation_planner_backend.repository.AccommodationRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -59,19 +63,35 @@ public class AccommodationService {
         repository.deleteById(id);
     }
 
-    public List<AccommodationResponse> findByCity(String city) {
+    public PageResponse<AccommodationResponse> findByCity(
+        String city,
+        int page,
+        int size
+    ) {
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
 
-        return repository
-                .findByCityIgnoreCaseOrderByPricePerNightAsc(city)
-                .stream()
-                .map(accommodation ->
-                        new AccommodationResponse(
-                                accommodation.getId(),
-                                accommodation.getName(),
-                                accommodation.getPricePerNight()
-                        )
-                )
-                .toList();
+        Page<AccommodationResponse> accommodations = repository
+            .findByCityIgnoreCase(city, pageable)
+            .map(accommodation -> new AccommodationResponse(
+                accommodation.getId(),
+                accommodation.getName(),
+                accommodation.getPricePerNight()
+            ));
+
+        return new PageResponse<>(
+            accommodations.getContent(),
+            accommodations.getNumber(),
+            accommodations.getSize(),
+            accommodations.getTotalElements(),
+            accommodations.getTotalPages()
+        );
     }
 
     private void validatePrice(BigDecimal price) {

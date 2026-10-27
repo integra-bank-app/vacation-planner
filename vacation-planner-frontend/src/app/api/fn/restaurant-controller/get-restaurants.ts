@@ -7,16 +7,28 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { RestaurantDto } from '../../models/restaurant-dto';
+import { PageResponseRestaurantDto } from '../../models/page-response-restaurant-dto';
 
 export interface GetRestaurants$Params {
   city: string;
+
+/**
+ * Page number, starting at 0
+ */
+  page?: number;
+
+/**
+ * Number of items per page
+ */
+  size?: 5 | 10 | 20 | 50 | 100;
 }
 
-export function getRestaurants(http: HttpClient, rootUrl: string, params: GetRestaurants$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<RestaurantDto>>> {
+export function getRestaurants(http: HttpClient, rootUrl: string, params: GetRestaurants$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseRestaurantDto>> {
   const rb = new RequestBuilder(rootUrl, getRestaurants.PATH, 'get');
   if (params) {
     rb.path('city', params.city, {});
+    rb.query('page', params.page, {});
+    rb.query('size', params.size, {});
   }
 
   return http.request(
@@ -24,7 +36,7 @@ export function getRestaurants(http: HttpClient, rootUrl: string, params: GetRes
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Array<RestaurantDto>>;
+      return r as StrictHttpResponse<PageResponseRestaurantDto>;
     })
   );
 }

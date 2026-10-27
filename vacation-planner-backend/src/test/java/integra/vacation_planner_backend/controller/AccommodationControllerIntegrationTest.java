@@ -48,6 +48,90 @@ class AccommodationControllerIntegrationTest {
     }
 
     @Test
+    void findByCity_shouldUseRequestedPageAndSize() throws Exception {
+        for (int index = 5; index >= 0; index--) {
+            createAccommodation(
+                "Hotel %02d".formatted(index),
+                BigDecimal.valueOf(100 + index),
+                "Str. Test 1",
+                "Cluj"
+            );
+        }
+
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj")
+                .param("page", "1")
+                .param("size", "5"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].name").value("Hotel 05"))
+            .andExpect(jsonPath("$.page").value(1))
+            .andExpect(jsonPath("$.size").value(5))
+            .andExpect(jsonPath("$.totalElements").value(6))
+            .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void findByCity_shouldReturnBadRequest_whenSizeIsInvalid() throws Exception {
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj")
+                .param("size", "7"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value(
+                "size must be one of: 5, 10, 20, 50, 100"
+            ));
+    }
+
+    @Test
+    void findByCity_shouldReturnBadRequest_whenPageIsNegative() throws Exception {
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj")
+                .param("page", "-1"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value(
+                "page must be greater than or equal to 0"
+            ));
+    }
+
+    @Test
+    void findByCity_shouldReturnBadRequest_whenPageIsNotANumber() throws Exception {
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj")
+                .param("page", "abc"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value(
+                "page must be a valid integer"
+            ));
+    }
+
+    @Test
+    void findByCity_shouldReturnBadRequest_whenSizeIsNotANumber() throws Exception {
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj")
+                .param("size", "abc"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value(
+                "size must be a valid integer"
+            ));
+    }
+
+    @Test
+    void findByCity_shouldReturnEmptyContent_whenPageIsBeyondEnd() throws Exception {
+        createAccommodation();
+
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj")
+                .param("page", "1")
+                .param("size", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isEmpty())
+            .andExpect(jsonPath("$.page").value(1))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
     void create_shouldReturnId() throws Exception {
         AccommodationRequest request = new AccommodationRequest(
             "Hotel Central",
@@ -140,34 +224,33 @@ class AccommodationControllerIntegrationTest {
     }
 
     @Test
-    void findByCity_shouldReturnAccommodationsSortedByPrice()
-        throws Exception {
-
+    void findByCity_shouldReturnDefaultPageSortedByName() throws Exception {
         createAccommodation(
-            "Expensive Hotel",
-            BigDecimal.valueOf(500),
+            "Zeta Hotel",
+            BigDecimal.valueOf(100),
             "Str. A 1",
             "Cluj"
         );
 
         createAccommodation(
-            "Cheap Hotel",
-            BigDecimal.valueOf(200),
+            "Alpha Hotel",
+            BigDecimal.valueOf(500),
             "Str. B 2",
             "Cluj"
         );
 
-        mockMvc.perform(
-                get("/accommodations")
-                    .param("city", "Cluj")
-            )
+        mockMvc.perform(get("/accommodations")
+                .param("city", "Cluj"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].name").value("Cheap Hotel"))
-            .andExpect(jsonPath("$[0].pricePerNight").value(200))
-            .andExpect(jsonPath("$[1].name").value("Expensive Hotel"))
-            .andExpect(jsonPath("$[1].pricePerNight").value(500));
+            .andExpect(jsonPath("$.content.length()").value(2))
+            .andExpect(jsonPath("$.content[0].name").value("Alpha Hotel"))
+            .andExpect(jsonPath("$.content[0].pricePerNight").value(500))
+            .andExpect(jsonPath("$.content[1].name").value("Zeta Hotel"))
+            .andExpect(jsonPath("$.content[1].pricePerNight").value(100))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test
@@ -179,13 +262,12 @@ class AccommodationControllerIntegrationTest {
             "Cluj"
         );
 
-        mockMvc.perform(
-                get("/accommodations")
-                    .param("city", "cluj")
-            )
+        mockMvc.perform(get("/accommodations")
+                .param("city", "cluj"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].name").value("Hotel Central"));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].name").value("Hotel Central"))
+            .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     private UUID createAccommodation() throws Exception {
@@ -203,7 +285,6 @@ class AccommodationControllerIntegrationTest {
         String address,
         String city
     ) throws Exception {
-
         AccommodationRequest request = new AccommodationRequest(
             name,
             price,

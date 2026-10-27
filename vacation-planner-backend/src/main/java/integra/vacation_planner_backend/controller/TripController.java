@@ -1,6 +1,5 @@
 package integra.vacation_planner_backend.controller;
 
-import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.service.TripService;
@@ -15,9 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import integra.vacation_planner_backend.dto.PageResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -36,12 +38,40 @@ public class TripController {
     }
 
     @GetMapping
-    public List<TripResponse> getTrips(
+    @Operation(
+        summary = "Search trips by username and dates",
+        description = "Results are sorted by startDate ascending, then id ascending."
+    )
+    public PageResponse<TripResponse> getTrips(
         @RequestParam String username,
         @RequestParam LocalDate startDate,
-        @RequestParam LocalDate endDate
+        @RequestParam LocalDate endDate,
+        @Parameter(
+            description = "Page number, starting at 0",
+            schema = @Schema(
+                type = "integer",
+                minimum = "0",
+                defaultValue = "0"
+            )
+        )
+        @RequestParam(defaultValue = "0") int page,
+        @Parameter(
+            description = "Number of items per page",
+            schema = @Schema(
+                type = "integer",
+                defaultValue = "10",
+                allowableValues = {"5", "10", "20", "50", "100"}
+            )
+        )
+        @RequestParam(defaultValue = "10") int size
     ) {
-        return tripService.getTripsBetweenDates(username, startDate, endDate);
+        return tripService.getTripsBetweenDates(
+            username,
+            startDate,
+            endDate,
+            page,
+            size
+        );
     }
 
     @PutMapping("/{tripId}")
@@ -63,11 +93,38 @@ public class TripController {
     }
 
     @GetMapping("/{tripId}/accommodations")
-    public List<TripAccommodationResponse> getTripAccommodations(
+    @Operation(
+        summary = "List accommodations of a trip",
+        description = "Results are sorted by name ascending, then id ascending."
+    )
+    public PageResponse<TripAccommodationResponse> getTripAccommodations(
         @PathVariable UUID tripId,
-        @RequestParam String username
+        @RequestParam String username,
+        @Parameter(
+            description = "Page number, starting at 0",
+            schema = @Schema(
+                type = "integer",
+                minimum = "0",
+                defaultValue = "0"
+            )
+        )
+        @RequestParam(defaultValue = "0") int page,
+        @Parameter(
+            description = "Number of items per page",
+            schema = @Schema(
+                type = "integer",
+                defaultValue = "10",
+                allowableValues = {"5", "10", "20", "50", "100"}
+            )
+        )
+        @RequestParam(defaultValue = "10") int size
     ) {
-        return tripService.getTripAccommodations(tripId, username);
+        return tripService.getTripAccommodations(
+            tripId,
+            username,
+            page,
+            size
+        );
     }
 
     @DeleteMapping("/{tripId}/accommodations/{accommodationId}")

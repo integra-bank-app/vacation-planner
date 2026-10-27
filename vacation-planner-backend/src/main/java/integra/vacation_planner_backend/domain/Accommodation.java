@@ -10,16 +10,20 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToMany;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.math.BigDecimal;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "accommodation")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Accommodation {
 
     @Id
@@ -35,11 +39,28 @@ public class Accommodation {
 
     private String city;
 
+    @ManyToMany(mappedBy = "accommodations", fetch = FetchType.LAZY)
+    private Set<Trip> trips = new HashSet<>();
+
     public Accommodation(
-            String name,
-            BigDecimal pricePerNight,
-            String address,
-            String city
+        UUID id,
+        String name,
+        BigDecimal pricePerNight,
+        String address,
+        String city
+    ) {
+        this.id = id;
+        this.name = name;
+        this.pricePerNight = pricePerNight;
+        this.address = address;
+        this.city = city;
+    }
+
+    public Accommodation(
+        String name,
+        BigDecimal pricePerNight,
+        String address,
+        String city
     ) {
         this.name = name;
         this.pricePerNight = pricePerNight;
