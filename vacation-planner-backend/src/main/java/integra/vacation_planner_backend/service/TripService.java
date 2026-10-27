@@ -221,8 +221,8 @@ public class TripService {
             throw new ForbiddenException("User is not the owner of this trip");
         }
 
-        Page<TripAccommodationResponse> accommodations = tripRepository
-            .findAccommodationsByTripId(tripId, pageable)
+        Page<TripAccommodationResponse> accommodations = accommodationRepository
+            .findByTrips_Id(tripId, pageable)
             .map(accommodation -> new TripAccommodationResponse(
                 accommodation.getId(),
                 accommodation.getName(),

@@ -14,4 +14,9 @@ public interface AccommodationRepository
         String city,
         Pageable pageable
     );
+
+    Page<Accommodation> findByTrips_Id(
+        UUID tripId,
+        Pageable pageable
+    );
 }

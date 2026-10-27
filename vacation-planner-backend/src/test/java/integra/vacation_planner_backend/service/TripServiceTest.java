@@ -674,7 +674,7 @@ class TripServiceTest {
             )
         );
 
-        when(tripRepository.findAccommodationsByTripId(trip.getId(), pageable))
+        when(accommodationRepository.findByTrips_Id(trip.getId(), pageable))
             .thenReturn(new PageImpl<>(
                 List.of(accommodation),
                 pageable,
@@ -699,8 +699,8 @@ class TripServiceTest {
         assertEquals(6L, result.totalElements());
         assertEquals(2, result.totalPages());
 
-        verify(tripRepository)
-            .findAccommodationsByTripId(trip.getId(), pageable);
+        verify(accommodationRepository)
+            .findByTrips_Id(trip.getId(), pageable);
     }
 
     @Test
@@ -712,8 +712,8 @@ class TripServiceTest {
             () -> tripService.getTripAccommodations(trip.getId(), "alice", 0, 10)
         );
 
-        verify(tripRepository, never())
-            .findAccommodationsByTripId(any(UUID.class), any(Pageable.class));
+        verify(accommodationRepository, never())
+            .findByTrips_Id(any(UUID.class), any(Pageable.class));
     }
 
     @Test
@@ -728,8 +728,8 @@ class TripServiceTest {
             () -> tripService.getTripAccommodations(tripId, "bob", 0, 10)
         );
 
-        verify(tripRepository, never())
-            .findAccommodationsByTripId(any(UUID.class), any(Pageable.class));
+        verify(accommodationRepository, never())
+            .findByTrips_Id(any(UUID.class), any(Pageable.class));
     }
 
     @Test
@@ -745,7 +745,7 @@ class TripServiceTest {
             )
         );
 
-        when(tripRepository.findAccommodationsByTripId(trip.getId(), pageable))
+        when(accommodationRepository.findByTrips_Id(trip.getId(), pageable))
             .thenReturn(new PageImpl<Accommodation>(
                 List.of(),
                 pageable,
@@ -761,8 +761,8 @@ class TripServiceTest {
         assertEquals(25L, result.totalElements());
         assertEquals(3, result.totalPages());
 
-        verify(tripRepository)
-            .findAccommodationsByTripId(trip.getId(), pageable);
+        verify(accommodationRepository)
+            .findByTrips_Id(trip.getId(), pageable);
     }
 
     @Test
@@ -781,8 +781,8 @@ class TripServiceTest {
             );
         }
 
-        verify(tripRepository, never())
-            .findAccommodationsByTripId(any(UUID.class), any(Pageable.class));
+        verify(accommodationRepository, never())
+            .findByTrips_Id(any(UUID.class), any(Pageable.class));
     }
 
     @Test
