@@ -2,6 +2,7 @@ package integra.vacation_planner_backend.controller;
 
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import integra.vacation_planner_backend.exception.UserNotFoundException;
@@ -52,6 +53,9 @@ class TripControllerTest {
 
     @MockitoBean
     private TripService tripService;
+
+    @MockitoBean
+    private TripRestaurantService tripRestaurantService;
 
     @Test
     void createTrip_shouldReturnTripId() throws Exception {

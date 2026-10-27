@@ -3,6 +3,9 @@ package integra.vacation_planner_backend.controller;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.dto.TripRestaurantRequestDTO;
+import integra.vacation_planner_backend.dto.TripRestaurantResponseDTO;
+import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.service.TripService;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
@@ -26,8 +29,14 @@ public class TripController {
 
     private final TripService tripService;
 
-    public TripController(TripService tripService) {
+    private final TripRestaurantService tripRestaurantService;
+
+    public TripController(
+        TripService tripService,
+        TripRestaurantService tripRestaurantService
+    ) {
         this.tripService = tripService;
+        this.tripRestaurantService = tripRestaurantService;
     }
 
     @PostMapping
@@ -52,6 +61,39 @@ public class TripController {
     @DeleteMapping("/{tripId}")
     public void deleteTrip(@PathVariable UUID tripId, @RequestParam String username) {
         tripService.deleteTrip(tripId, username);
+    }
+
+    @PostMapping("/{tripId}/restaurants")
+    public UUID addRestaurantToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody TripRestaurantRequestDTO request
+    ) {
+        return tripRestaurantService.addRestaurantToTrip(
+            tripId,
+            request.username(),
+            request.restaurantId(),
+            request.visitDate(),
+            request.visitTime()
+        );
+    }
+
+    @GetMapping("/{tripId}/restaurants")
+    public List<TripRestaurantResponseDTO> getRestaurantsForTrip(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripRestaurantService.getRestaurantsForTrip(tripId, username);
+    }
+
+    @DeleteMapping("/{tripId}/restaurants/{visitId}")
+    public void removeRestaurantFromTrip(
+        @PathVariable UUID tripId,
+        @PathVariable UUID visitId,
+        @RequestParam String username
+    ) {
+        tripRestaurantService.removeRestaurantFromTrip(
+            tripId, visitId, username
+        );
     }
 
     @PostMapping("/{tripId}/accommodations")
