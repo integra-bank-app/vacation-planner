@@ -5,6 +5,7 @@ import { Flights } from './pages/flights';
 import { Trips } from './pages/trips';
 import { Restaurants } from './pages/restaurants';
 import { Accommodations } from './pages/accommodations';
+import {Login} from './pages/login';
 
 export const routes: Routes = [
   { path: 'test', component: TestComponent },
@@ -13,4 +14,5 @@ export const routes: Routes = [
   { path: 'flights', component: Flights},
   { path: 'accommodations', component: Accommodations},
   { path: 'restaurants', component: Restaurants},
+  { path: 'login', component: Login},
 ];
