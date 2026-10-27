@@ -4,6 +4,7 @@ package integra.vacation_planner_backend.service;
 import integra.vacation_planner_backend.domain.Restaurant;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.domain.TripRestaurant;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripRestaurantResponseDTO;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
@@ -468,9 +469,15 @@ class TripRestaurantServiceTest {
 
     private Trip createTrip(String username) {
         Trip trip = new Trip();
-        trip.setUsername(username);
+
+        User user = new User();
+        user.setUsername(username);
+
+        trip.setUser(user);
+
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
+
         return trip;
     }
 

@@ -3,10 +3,12 @@ package integra.vacation_planner_backend.service;
 import integra.vacation_planner_backend.domain.Restaurant;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.domain.TripRestaurant;
+import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripRestaurantResponseDTO;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.TripRestaurantRepository;
+import integra.vacation_planner_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,9 @@ class TripRestaurantIntegrationTest {
     private TripRepository tripRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private RestaurantRepository restaurantRepository;
 
     @Autowired
@@ -41,11 +46,19 @@ class TripRestaurantIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        User user = new User();
+        user.setUsername("alice");
+        user.setEmail("aliceAli@yahoo.com");
+        user.setFirstName("Alice");
+        user.setLastName("Test");
+
+        user = userRepository.saveAndFlush(user);
+
         trip = new Trip();
         trip.setDestination("Rome");
         trip.setStartDate(LocalDate.of(2026, 6, 10));
         trip.setEndDate(LocalDate.of(2026, 6, 15));
-        trip.setUsername("alice");
+        trip.setUser(user);
         trip = tripRepository.saveAndFlush(trip);
 
         restaurant = new Restaurant(

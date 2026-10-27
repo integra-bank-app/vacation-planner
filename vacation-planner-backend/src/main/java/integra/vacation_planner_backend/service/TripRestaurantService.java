@@ -50,7 +50,7 @@ public class TripRestaurantService {
             .orElseThrow(() ->
             new TripNotFoundException("Trip not found: " + tripId));
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new UnauthorizedTripAccessException(
                 "You do not have permission to modify this trip"
             );
@@ -96,29 +96,6 @@ public class TripRestaurantService {
         return tripRestaurantRepository.save(visit).getId();
     }
 
-    private boolean isWithinOpeningHours(
-        LocalTime visitTime,
-        LocalTime openingHour,
-        LocalTime closingHour
-    ) {
-        if (visitTime == null || openingHour == null || closingHour == null) {
-            return false;
-        }
-
-        if (openingHour.isBefore(closingHour)) {
-            return !visitTime.isBefore(openingHour)
-                && visitTime.isBefore(closingHour);
-        }
-
-        // Overnight hours like 18:00-02:00.
-        if (openingHour.isAfter(closingHour)) {
-            return !visitTime.isBefore(openingHour)
-                || visitTime.isBefore(closingHour);
-        }
-
-        return false;
-    }
-
     @Transactional(readOnly = true)
     public List<TripRestaurantResponseDTO> getRestaurantsForTrip(
         UUID tripId,
@@ -128,7 +105,7 @@ public class TripRestaurantService {
             .orElseThrow(() ->
                 new TripNotFoundException("Trip not found: " + tripId));
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new UnauthorizedTripAccessException(
                 "You do not have permission to view this trip"
             );
@@ -158,7 +135,7 @@ public class TripRestaurantService {
             .orElseThrow(() ->
                 new TripNotFoundException("Trip not found: " + tripId));
 
-        if (!trip.getUsername().equals(username)) {
+        if (!trip.getUser().getUsername().equals(username)) {
             throw new UnauthorizedTripAccessException(
                 "You do not have permission to modify this trip"
             );
@@ -175,5 +152,28 @@ public class TripRestaurantService {
         }
 
         tripRestaurantRepository.delete(visit);
+    }
+
+    private boolean isWithinOpeningHours(
+        LocalTime visitTime,
+        LocalTime openingHour,
+        LocalTime closingHour
+    ) {
+        if (visitTime == null || openingHour == null || closingHour == null) {
+            return false;
+        }
+
+        if (openingHour.isBefore(closingHour)) {
+            return !visitTime.isBefore(openingHour)
+                && visitTime.isBefore(closingHour);
+        }
+
+        // Overnight hours like 18:00-02:00.
+        if (openingHour.isAfter(closingHour)) {
+            return !visitTime.isBefore(openingHour)
+                || visitTime.isBefore(closingHour);
+        }
+
+        return false;
     }
 }
