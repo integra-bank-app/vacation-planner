@@ -11,6 +11,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -53,7 +55,8 @@ class FlightControllerTest {
                 "CLJ",
                 "FCO",
                 Instant.parse("2026-10-10T08:00:00Z").atZone(ZoneId.systemDefault()),
-                Instant.parse("2026-10-10T10:00:00Z").atZone(ZoneId.systemDefault())
+                Instant.parse("2026-10-10T10:00:00Z").atZone(ZoneId.systemDefault()),
+                new BigDecimal("150.00")
         );
         when(flightService.getFlights("CLJ")).thenReturn(List.of(response));
 
@@ -61,7 +64,8 @@ class FlightControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].flightNumber").value("W43381"))
                 .andExpect(jsonPath("$[0].departureAirport").value("CLJ"))
-                .andExpect(jsonPath("$[0].arrivalAirport").value("FCO"));
+                .andExpect(jsonPath("$[0].arrivalAirport").value("FCO"))
+                .andExpect(jsonPath("$[0].price").value(150.00));
         verify(flightService).getFlights("CLJ");
     }
 
@@ -92,6 +96,7 @@ class FlightControllerTest {
         flight.setDepartureTime(Instant.parse("2026-10-10T08:00:00Z"));
         flight.setArrivalTime(Instant.parse("2026-10-10T10:00:00Z"));
         flight.setNumberOfSeats(seats);
+        flight.setPrice(new BigDecimal("150.00"));
         return flight;
     }
 
@@ -103,7 +108,8 @@ class FlightControllerTest {
                   "arrivalAirportCode": "FCO",
                   "departureTime": "2026-10-10T08:00:00Z",
                   "arrivalTime": "2026-10-10T10:00:00Z",
-                  "numberOfSeats": %d
+                  "numberOfSeats": %d,
+                  "price": 150.00
                 }
                 """.formatted(seats);
     }
