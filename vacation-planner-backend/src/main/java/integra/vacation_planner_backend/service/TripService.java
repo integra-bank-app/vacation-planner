@@ -1,25 +1,30 @@
 package integra.vacation_planner_backend.service;
 
+import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Accommodation;
 import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
-import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.exception.ConflictException;
-import integra.vacation_planner_backend.exception.ForbiddenException;
 import integra.vacation_planner_backend.exception.NotFoundException;
+import integra.vacation_planner_backend.repository.FlightRepository;
+import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.exception.ForbiddenException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
-import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
+
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +38,18 @@ public class TripService {
 
     private final UserRepository userRepository;
 
+    private final FlightRepository flightRepository;
+
     public TripService(
         TripRepository tripRepository,
         AccommodationRepository accommodationRepository,
-        UserRepository userRepository
+        UserRepository userRepository,
+        FlightRepository flightRepository
     ) {
         this.tripRepository = tripRepository;
         this.accommodationRepository = accommodationRepository;
         this.userRepository = userRepository;
+        this.flightRepository = flightRepository;
     }
 
     public UUID createTrip(TripDTO dto) {
@@ -101,6 +110,34 @@ public class TripService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<FlightResponse> getTripFlights(UUID tripId, String username) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "User is not authorized to view the flights for this trip"
+            );
+        }
+
+        return trip.getFlights().stream()
+            .sorted(Comparator.comparing(Flight::getDepartureTime))
+            .map(flight -> new FlightResponse(
+                flight.getFlightNumber(),
+                flight.getDepartureAirportCode(),
+                flight.getArrivalAirportCode(),
+                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
+                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+                flight.getPrice()
+            ))
+            .toList();
+    }
+
     @Transactional
     public void updateTrip(UUID tripId, TripDTO dto) {
         Trip trip = tripRepository.findById(tripId)
@@ -152,6 +189,85 @@ public class TripService {
         }
 
         tripRepository.delete(trip);
+    }
+
+    @Transactional
+    public void addFlightToTrip(UUID tripId, String username, String flightNumber) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() ->  new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("username is required");
+        }
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "Not allowed to add flights to this trip"
+            );
+        }
+
+        if (flightNumber == null || flightNumber.isBlank()) {
+            throw new IllegalArgumentException("flightNumber is required");
+        }
+
+
+        Flight flight = flightRepository.findByFlightNumberForUpdate(flightNumber)
+            .orElseThrow(() -> new NotFoundException("Flight not found"));
+
+
+        boolean alreadyAdded = trip.getFlights().stream()
+            .anyMatch(existingFlight ->
+                existingFlight.getId().equals(flight.getId()));
+
+        if (alreadyAdded) {
+            throw new ConflictException("Flight already added to this trip");
+        }
+
+        long bookedSeats = tripRepository.countTripsUsingFlight(flight.getId());
+
+        if (bookedSeats >= flight.getNumberOfSeats()) {
+            throw new ConflictException("Flight is full");
+        }
+
+        trip.getFlights().add(flight);
+        tripRepository.save(trip);
+    }
+
+    @Transactional
+    public void deleteFlightFromTrip(
+        UUID tripId,
+        String flightNumber,
+        String username
+    ) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "User is not authorized to remove flights from this trip"
+            );
+        }
+
+        if (flightNumber == null || flightNumber.isBlank()) {
+            throw new IllegalArgumentException("Flight number is required");
+        }
+
+        Flight flight = flightRepository.findByFlightNumber(flightNumber)
+            .orElseThrow(() -> new NotFoundException("Flight not found"));
+
+        boolean removed = trip.getFlights().removeIf(
+            existingFlight -> existingFlight.getId().equals(flight.getId())
+        );
+
+        if (!removed) {
+            throw new NotFoundException("Flight is not part of this trip");
+        }
+
+        tripRepository.save(trip);
     }
 
     @Transactional

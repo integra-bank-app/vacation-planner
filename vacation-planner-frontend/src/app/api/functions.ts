@@ -9,6 +9,18 @@ export type { GetTrips$Params as GetTrips$Params } from './fn/trip-controller/ge
 export { getTrips as getTrips } from './fn/trip-controller/get-trips';
 export type { CreateTrip$Params as CreateTrip$Params } from './fn/trip-controller/create-trip';
 export { createTrip as createTrip } from './fn/trip-controller/create-trip';
+export type { GetFlights1$Params as GetFlights1$Params } from './fn/trip-controller/get-flights-1';
+export { getFlights1 as getFlights1 } from './fn/trip-controller/get-flights-1';
+export type { AddFlightToTrip$Params as AddFlightToTrip$Params } from './fn/trip-controller/add-flight-to-trip';
+export { addFlightToTrip as addFlightToTrip } from './fn/trip-controller/add-flight-to-trip';
+export type { GetTripAccommodations$Params as GetTripAccommodations$Params } from './fn/trip-controller/get-trip-accommodations';
+export { getTripAccommodations as getTripAccommodations } from './fn/trip-controller/get-trip-accommodations';
+export type { AddAccommodationToTrip$Params as AddAccommodationToTrip$Params } from './fn/trip-controller/add-accommodation-to-trip';
+export { addAccommodationToTrip as addAccommodationToTrip } from './fn/trip-controller/add-accommodation-to-trip';
+export type { DeleteTripFlight$Params as DeleteTripFlight$Params } from './fn/trip-controller/delete-trip-flight';
+export { deleteTripFlight as deleteTripFlight } from './fn/trip-controller/delete-trip-flight';
+export type { RemoveAccommodationFromTrip$Params as RemoveAccommodationFromTrip$Params } from './fn/trip-controller/remove-accommodation-from-trip';
+export { removeAccommodationFromTrip as removeAccommodationFromTrip } from './fn/trip-controller/remove-accommodation-from-trip';
 export type { UpdateRestaurant$Params as UpdateRestaurant$Params } from './fn/restaurant-controller/update-restaurant';
 export { updateRestaurant as updateRestaurant } from './fn/restaurant-controller/update-restaurant';
 export type { DeleteRestaurant$Params as DeleteRestaurant$Params } from './fn/restaurant-controller/delete-restaurant';

@@ -3,12 +3,15 @@
 
 export type { AccommodationRequest } from './models/accommodation-request';
 export type { AccommodationResponse } from './models/accommodation-response';
+export type { AddFlightToTripRequest } from './models/add-flight-to-trip-request';
 export type { Flight } from './models/flight';
 export type { FlightRequest } from './models/flight-request';
 export type { FlightResponse } from './models/flight-response';
 export type { RestaurantDto } from './models/restaurant-dto';
-export type { Trip } from './models/trip';
+export type { TripAccommodationRequest } from './models/trip-accommodation-request';
+export type { TripAccommodationResponse } from './models/trip-accommodation-response';
 export type { TripDto } from './models/trip-dto';
+export type { TripResponse } from './models/trip-response';
 export type { UpdatePriceRequest } from './models/update-price-request';
 export type { UserRegisterRequestDto } from './models/user-register-request-dto';
 export type { UserResponseDto } from './models/user-response-dto';
