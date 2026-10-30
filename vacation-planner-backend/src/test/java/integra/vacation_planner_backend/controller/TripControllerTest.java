@@ -149,6 +149,7 @@ class TripControllerTest {
             .andExpect(jsonPath("$[0].flightNumber").value(outbound.getFlightNumber()))
             .andExpect(jsonPath("$[0].departureAirport").value("CLJ"))
             .andExpect(jsonPath("$[0].arrivalAirport").value("CDG"))
+            .andExpect(jsonPath("$[0].price").value(150.00))
             .andExpect(jsonPath("$[1].flightNumber").value(inbound.getFlightNumber()))
             .andReturn().getResponse().getContentAsString();
         assertThat(instantAt(flightsJson, "$[0].departureTime")).isEqualTo(OUT_DEP);
@@ -998,6 +999,7 @@ class TripControllerTest {
         flight.setDepartureTime(departure);
         flight.setArrivalTime(arrival);
         flight.setNumberOfSeats(seats);
+        flight.setPrice(new BigDecimal("150.00"));
 
         Flight saved = flightRepository.save(flight);
         createdFlightIds.add(saved.getId());

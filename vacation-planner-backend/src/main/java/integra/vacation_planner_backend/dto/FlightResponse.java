@@ -1,5 +1,6 @@
 package integra.vacation_planner_backend.dto;
 
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
 public record FlightResponse(
@@ -7,6 +8,7 @@ public record FlightResponse(
         String departureAirport,
         String arrivalAirport,
         ZonedDateTime departureTime,
-        ZonedDateTime arrivalTime
+        ZonedDateTime arrivalTime,
+        BigDecimal price
 ) {
 }

@@ -132,7 +132,8 @@ public class TripService {
                 flight.getDepartureAirportCode(),
                 flight.getArrivalAirportCode(),
                 flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault())
+                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+                flight.getPrice()
             ))
             .toList();
     }
