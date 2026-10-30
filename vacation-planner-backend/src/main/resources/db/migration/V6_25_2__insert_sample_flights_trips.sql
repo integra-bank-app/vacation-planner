@@ -34,17 +34,19 @@ INSERT INTO trip (
     destination,
     start_date,
     end_date,
-    username
+    user_id
 ) VALUES
       ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-       'Paris', '2027-06-10', '2027-06-15', 'tudor'),
+       'Paris', '2027-06-10', '2027-06-15',
+       (SELECT id FROM users WHERE username = 'ana.pop')),
 
       ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-       'Rome', '2027-07-01', '2027-07-05', 'tudor'),
+       'Rome', '2027-07-01', '2027-07-05',
+       (SELECT id FROM users WHERE username = 'ana.pop')),
 
       ('cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-       'Paris', '2027-06-10', '2027-06-15', 'bianca');
-
+       'Paris', '2027-06-10', '2027-06-15',
+       (SELECT id FROM users WHERE username = 'mihai.ionescu'));
 
 INSERT INTO trip_flight (trip_id, flight_id) VALUES
                                                  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
