@@ -8,4 +8,5 @@ export interface FlightRequest {
   departureTime?: string;
   flightNumber?: string;
   numberOfSeats?: number;
+  price?: number;
 }
