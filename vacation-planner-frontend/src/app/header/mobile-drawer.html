@@ -1,0 +1,16 @@
+<p-drawer [(visible)]="visible">
+  <div>
+    <nav>
+      <a routerLink="/trips" class="hover:underline" routerLinkActive="text-lime-700">My trips</a><br>
+      <a routerLink="/flights" class="hover:underline" routerLinkActive="text-lime-700">Flights</a><br>
+      <a routerLink="/accommodations" class="hover:underline" routerLinkActive="text-lime-700">Accommodations</a><br>
+      <a routerLink="/restaurants" class="hover:underline" routerLinkActive="text-lime-700">Restaurants</a>
+    </nav>
+  </div>
+  <div>
+    <user-menu></user-menu>
+  </div>
+</p-drawer>
+<button type="button" (click)="visible = true">
+  Menu
+</button>

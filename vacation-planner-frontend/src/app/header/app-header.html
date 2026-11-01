@@ -2,17 +2,24 @@
   <div>
     <site-logo></site-logo>
   </div>
-  <div class="text-gray-500">
-    <nav>
-      <a routerLink="/trips" class="hover:underline" routerLinkActive="text-lime-700">My trips</a> |
-      <a routerLink="/flights" class="hover:underline" routerLinkActive="text-lime-700">Flights</a> |
-      <a routerLink="/accommodations" class="hover:underline" routerLinkActive="text-lime-700">Accommodations</a> |
-      <a routerLink="/restaurants" class="hover:underline" routerLinkActive="text-lime-700">Restaurants</a>
-    </nav>
-  </div>
-  <div class="w-40 flex place-content-end">
-    <div>
-      <user-menu></user-menu>
+  @if (windowWidth > 800) {
+
+    <div class="text-gray-500">
+      <nav>
+        <a routerLink="/trips" class="hover:underline" routerLinkActive="text-lime-700">My trips</a> |
+        <a routerLink="/flights" class="hover:underline" routerLinkActive="text-lime-700">Flights</a> |
+        <a routerLink="/accommodations" class="hover:underline" routerLinkActive="text-lime-700">Accommodations</a> |
+        <a routerLink="/restaurants" class="hover:underline" routerLinkActive="text-lime-700">Restaurants</a>
+      </nav>
     </div>
-  </div>
+    <div class="w-40 flex place-content-end">
+      <div>
+        <user-menu></user-menu>
+      </div>
+    </div>
+  } @else {
+    <div>
+      <mobile-drawer></mobile-drawer>
+    </div>
+  }
 </header>
