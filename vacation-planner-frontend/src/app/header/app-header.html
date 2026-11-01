@@ -1,18 +1,18 @@
 <header class="flex flex-row place-content-between p-4 border-b-2 border-b-lime-600">
-  <div class="w-40">
-    <a routerLink="/example">Vacation planner</a>
-  </div>
   <div>
+    <site-logo></site-logo>
+  </div>
+  <div class="text-gray-500">
     <nav>
-      <a routerLink="/trips">My trips</a> |
-      <a routerLink="/flights">Flights</a> |
-      <a routerLink="/accommodations">Accommodations</a> |
-      <a routerLink="/restaurants">Restaurants</a>
+      <a routerLink="/trips" class="hover:underline" routerLinkActive="text-lime-700">My trips</a> |
+      <a routerLink="/flights" class="hover:underline" routerLinkActive="text-lime-700">Flights</a> |
+      <a routerLink="/accommodations" class="hover:underline" routerLinkActive="text-lime-700">Accommodations</a> |
+      <a routerLink="/restaurants" class="hover:underline" routerLinkActive="text-lime-700">Restaurants</a>
     </nav>
   </div>
   <div class="w-40 flex place-content-end">
     <div>
-      User
+      <user-menu></user-menu>
     </div>
   </div>
 </header>
