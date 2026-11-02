@@ -4,6 +4,7 @@ import integra.vacation_planner_backend.dto.AccommodationRequest;
 import integra.vacation_planner_backend.dto.UpdatePriceRequest;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.repository.TripRestaurantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +40,14 @@ class AccommodationControllerIntegrationTest {
     private AccommodationRepository repository;
 
     @Autowired
+    private TripRestaurantRepository tripRestaurantRepository;
+
+    @Autowired
     private TripRepository tripRepository;
 
     @BeforeEach
     void setUp() {
+        tripRestaurantRepository.deleteAll();
         tripRepository.deleteAll();
         repository.deleteAll();
     }
