@@ -85,7 +85,7 @@ public class TripRestaurantService {
 
         if (duplicate) {
             throw new ConflictException(
-                "This restaurant is already scheduled for thi date and time"
+                "This restaurant is already scheduled for this date and time"
             );
         }
 
