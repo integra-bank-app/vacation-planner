@@ -1,10 +1,16 @@
 package integra.vacation_planner_backend.controller;
 
+import integra.vacation_planner_backend.dto.AddFlightToTripRequest;
+import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.dto.TripRestaurantRequestDTO;
+import integra.vacation_planner_backend.dto.TripRestaurantResponseDTO;
+import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.service.TripService;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,8 +34,14 @@ public class TripController {
 
     private final TripService tripService;
 
-    public TripController(TripService tripService) {
+    private final TripRestaurantService tripRestaurantService;
+
+    public TripController(
+        TripService tripService,
+        TripRestaurantService tripRestaurantService
+    ) {
         this.tripService = tripService;
+        this.tripRestaurantService = tripRestaurantService;
     }
 
     @PostMapping
@@ -84,6 +96,70 @@ public class TripController {
         tripService.deleteTrip(tripId, username);
     }
 
+    @PostMapping("{tripId}/flights")
+    public ResponseEntity<Void> addFlightToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody AddFlightToTripRequest request
+    ) {
+        tripService.addFlightToTrip(
+            tripId,
+            request.getUsername(),
+            request.getFlightNumber()
+        );
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{tripId}/flights")
+    public List<FlightResponse> getFlights(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripService.getTripFlights(tripId, username);
+    }
+
+    @DeleteMapping("/{tripId}/flights/{flightNumber}")
+    public void deleteTripFlight(
+        @PathVariable UUID tripId,
+        @PathVariable String flightNumber,
+        @RequestParam String username
+    ) {
+        tripService.deleteFlightFromTrip(tripId, flightNumber, username);
+    }
+
+    @PostMapping("/{tripId}/restaurants")
+    public UUID addRestaurantToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody TripRestaurantRequestDTO request
+    ) {
+        return tripRestaurantService.addRestaurantToTrip(
+            tripId,
+            request.username(),
+            request.restaurantId(),
+            request.visitDate(),
+            request.visitTime()
+        );
+    }
+
+    @GetMapping("/{tripId}/restaurants")
+    public List<TripRestaurantResponseDTO> getRestaurantsForTrip(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripRestaurantService.getRestaurantsForTrip(tripId, username);
+    }
+
+    @DeleteMapping("/{tripId}/restaurants/{visitId}")
+    public void removeRestaurantFromTrip(
+        @PathVariable UUID tripId,
+        @PathVariable UUID visitId,
+        @RequestParam String username
+    ) {
+        tripRestaurantService.removeRestaurantFromTrip(
+            tripId, visitId, username
+        );
+    }
+
     @PostMapping("/{tripId}/accommodations")
     public void addAccommodationToTrip(
         @PathVariable UUID tripId,
@@ -119,12 +195,7 @@ public class TripController {
         )
         @RequestParam(defaultValue = "10") int size
     ) {
-        return tripService.getTripAccommodations(
-            tripId,
-            username,
-            page,
-            size
-        );
+        return tripService.getTripAccommodations(tripId, username, page, size);
     }
 
     @DeleteMapping("/{tripId}/accommodations/{accommodationId}")

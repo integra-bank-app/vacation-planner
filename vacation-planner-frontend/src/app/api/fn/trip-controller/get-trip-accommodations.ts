@@ -8,29 +8,19 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { PageResponseTripAccommodationResponse } from '../../models/page-response-trip-accommodation-response';
+import { TripAccommodationResponse } from '../../models/trip-accommodation-response';
 
 export interface GetTripAccommodations$Params {
   tripId: string;
   username: string;
-
-/**
- * Page number, starting at 0
- */
-  page?: number;
-
-/**
- * Number of items per page
- */
-  size?: 5 | 10 | 20 | 50 | 100;
 }
 
 export function getTripAccommodations(http: HttpClient, rootUrl: string, params: GetTripAccommodations$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseTripAccommodationResponse>> {
+export function getTripAccommodations(http: HttpClient, rootUrl: string, params: GetTripAccommodations$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<TripAccommodationResponse>>> {
   const rb = new RequestBuilder(rootUrl, getTripAccommodations.PATH, 'get');
   if (params) {
     rb.path('tripId', params.tripId, {});
     rb.query('username', params.username, {});
-    rb.query('page', params.page, {});
-    rb.query('size', params.size, {});
   }
 
   return http.request(
@@ -39,6 +29,7 @@ export function getTripAccommodations(http: HttpClient, rootUrl: string, params:
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<PageResponseTripAccommodationResponse>;
+      return r as StrictHttpResponse<Array<TripAccommodationResponse>>;
     })
   );
 }

@@ -8,31 +8,21 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { PageResponseTripResponse } from '../../models/page-response-trip-response';
+import { TripResponse } from '../../models/trip-response';
 
 export interface GetTrips$Params {
   username: string;
   startDate: string;
   endDate: string;
-
-/**
- * Page number, starting at 0
- */
-  page?: number;
-
-/**
- * Number of items per page
- */
-  size?: 5 | 10 | 20 | 50 | 100;
 }
 
 export function getTrips(http: HttpClient, rootUrl: string, params: GetTrips$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseTripResponse>> {
+export function getTrips(http: HttpClient, rootUrl: string, params: GetTrips$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<TripResponse>>> {
   const rb = new RequestBuilder(rootUrl, getTrips.PATH, 'get');
   if (params) {
     rb.query('username', params.username, {});
     rb.query('startDate', params.startDate, {});
     rb.query('endDate', params.endDate, {});
-    rb.query('page', params.page, {});
-    rb.query('size', params.size, {});
   }
 
   return http.request(
@@ -41,6 +31,7 @@ export function getTrips(http: HttpClient, rootUrl: string, params: GetTrips$Par
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<PageResponseTripResponse>;
+      return r as StrictHttpResponse<Array<TripResponse>>;
     })
   );
 }

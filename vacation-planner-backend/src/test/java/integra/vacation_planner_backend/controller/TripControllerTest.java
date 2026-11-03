@@ -138,7 +138,10 @@ class TripControllerTest {
                 .param("username", "bob")
                 .param("startDate", "2026-06-01")
                 .param("endDate", "2026-06-30"))
+        searchTrips(user, "2027-06-10", "2027-06-15")
             .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].destination").value("Paris"));
             .andExpect(jsonPath("$.content[0].id").value(trip.id().toString()))
             .andExpect(jsonPath("$.content[0].username").value("bob"))
             .andExpect(jsonPath("$.content[0].destination").value("Paris"))
@@ -159,6 +162,8 @@ class TripControllerTest {
     }
 
     @Test
+    void getTrips_excludesATripThatStartsBeforeTheRange() throws Exception {
+        String user = userWithThreeTrips();
     void getTrips_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
         when(tripService.getTripsBetweenDates(
             eq("unknown"),
@@ -177,6 +182,8 @@ class TripControllerTest {
     }
 
     @Test
+    void getTrips_excludesATripThatEndsAfterTheRange() throws Exception {
+        String user = userWithThreeTrips();
     void getTrips_shouldReturnEmptyPage_whenNoTripsExist() throws Exception {
         when(tripService.getTripsBetweenDates(
             "bob",
@@ -193,11 +200,7 @@ class TripControllerTest {
                 .param("startDate", "2026-06-01")
                 .param("endDate", "2026-06-30"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content").isEmpty())
-            .andExpect(jsonPath("$.page").value(0))
-            .andExpect(jsonPath("$.size").value(10))
-            .andExpect(jsonPath("$.totalElements").value(0))
-            .andExpect(jsonPath("$.totalPages").value(0));
+            .andExpect(content().json("[]"));
     }
 
     @Test
@@ -235,6 +238,25 @@ class TripControllerTest {
         )).thenThrow(new IllegalArgumentException(
             "startDate must be before endDate"
         ));
+    // ------------------------------------------------------------------
+    // PUT /trips/{id}
+    // ------------------------------------------------------------------
+
+    @ParameterizedTest
+    @MethodSource("validUpdates")
+    void updateTrip_changesOnlyTheDatesSent(
+        LocalDate newStart, LocalDate newEnd, LocalDate expectedStart, LocalDate expectedEnd
+    ) throws Exception {
+        String user = user("erin");
+        UUID tripId = createTrip(user, "Paris", START, END);
+
+        putTrip(tripId, tripDto(user, null, newStart, newEnd)).andExpect(status().isOk());
+
+        assertThat(tripRepository.findById(tripId)).hasValueSatisfying(trip -> {
+            assertThat(trip.getStartDate()).isEqualTo(expectedStart);
+            assertThat(trip.getEndDate()).isEqualTo(expectedEnd);
+        });
+    }
 
         mockMvc.perform(get("/trips")
                 .param("username", "bob")
@@ -244,6 +266,23 @@ class TripControllerTest {
             .andExpect(jsonPath("$.error").value(
                 "startDate must be before endDate"
             ));
+            .andExpect(jsonPath("$.error").value(message));
+
+        assertThat(tripRepository.findById(tripId)).hasValueSatisfying(trip -> {
+            assertThat(trip.getStartDate()).isEqualTo(START);
+            assertThat(trip.getEndDate()).isEqualTo(END);
+        });
+    }
+
+    static Stream<Arguments> invalidUpdates() {
+        return Stream.of(
+            Arguments.of(null, null, "At least one date must be provided"),
+            // new start is after the stored end
+            Arguments.of(LocalDate.of(2027, 6, 20), null, DATE_ORDER_ERROR),
+            // new end is before the stored start
+            Arguments.of(null, LocalDate.of(2027, 6, 5), DATE_ORDER_ERROR),
+            Arguments.of(LocalDate.of(2027, 7, 5), LocalDate.of(2027, 7, 1), DATE_ORDER_ERROR)
+        );
     }
 
     @Test
@@ -494,11 +533,15 @@ class TripControllerTest {
             "Cluj",
             BigDecimal.valueOf(250)
         );
+        getAccommodations(tripId, owner)
+            .andExpect(status().isOk())
+            .andExpect(content().json("[]"));
 
         when(tripService.getTripAccommodations(tripId, "bob", 0, 10))
             .thenReturn(new PageResponse<>(
                 List.of(accommodation), 0, 10, 1L, 1
             ));
+        addAccommodation(tripId, owner, hotel.getId()).andExpect(status().isOk());
 
         mockMvc.perform(get("/trips/" + tripId + "/accommodations")
                 .param("username", "bob"))
@@ -512,7 +555,18 @@ class TripControllerTest {
             .andExpect(jsonPath("$.size").value(10))
             .andExpect(jsonPath("$.totalElements").value(1))
             .andExpect(jsonPath("$.totalPages").value(1));
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value(hotel.getId().toString()))
+            .andExpect(jsonPath("$[0].name").value("Hotel Central"))
+            .andExpect(jsonPath("$[0].address").value("Str. Memorandumului 10"))
+            .andExpect(jsonPath("$[0].city").value("Cluj"))
+            .andExpect(jsonPath("$[0].pricePerNight").value(250));
 
+        removeAccommodation(tripId, hotel.getId(), owner).andExpect(status().isOk());
+
+        getAccommodations(tripId, owner).andExpect(content().json("[]"));
+        // the accommodation itself is kept
+        assertThat(accommodationRepository.existsById(hotel.getId())).isTrue();
         verify(tripService).getTripAccommodations(tripId, "bob", 0, 10);
     }
 
@@ -524,10 +578,38 @@ class TripControllerTest {
 
         when(tripService.getTripAccommodations(tripId, "alice", 0, 10))
             .thenThrow(new ForbiddenException("User is not the owner of this trip"));
+    @Test
+    void addAccommodation_allowsTheSameAccommodationOnAnotherTrip() throws Exception {
+        String owner = user("lena");
+        UUID firstTrip = createTrip(owner, "Cluj", START, END);
+        UUID secondTrip = createTrip(owner, "Cluj", START, END);
+        Accommodation hotel = saveHotel();
 
         mockMvc.perform(get("/trips/" + tripId + "/accommodations")
                 .param("username", "alice"))
             .andExpect(status().isForbidden());
+        addAccommodation(firstTrip, owner, hotel.getId()).andExpect(status().isOk());
+        addAccommodation(secondTrip, owner, hotel.getId()).andExpect(status().isOk());
+    }
+
+    @Test
+    void addAccommodation_returnsForbiddenForANonOwner_andAddsNothing() throws Exception {
+        String owner = user("lena");
+        UUID tripId = createTrip(owner, "Cluj", START, END);
+        Accommodation hotel = saveHotel();
+
+        addAccommodation(tripId, user("mallory"), hotel.getId())
+            .andExpect(status().isForbidden());
+
+        getAccommodations(tripId, owner).andExpect(content().json("[]"));
+    }
+
+    @Test
+    void addAccommodation_returnsNotFoundForAnUnknownTrip() throws Exception {
+        Accommodation hotel = saveHotel();
+
+        addAccommodation(UUID.randomUUID(), VALID_USER, hotel.getId())
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -673,5 +755,223 @@ class TripControllerTest {
             .param("username", "bob")
             .param("startDate", "2026-06-01")
             .param("endDate", "2026-06-30");
+    }
+
+    @Test
+    void removeAccommodation_returnsNotFoundForAnUnknownAccommodation() throws Exception {
+        String owner = user("lena");
+        UUID tripId = createTrip(owner, "Cluj", START, END);
+
+        removeAccommodation(tripId, UUID.randomUUID(), owner).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void removeAccommodation_returnsNotFoundForAnAccommodationThatIsNotOnTheTrip()
+        throws Exception {
+        String owner = user("lena");
+        UUID tripId = createTrip(owner, "Cluj", START, END);
+        Accommodation notOnTrip = saveHotel();
+
+        removeAccommodation(tripId, notOnTrip.getId(), owner).andExpect(status().isNotFound());
+    }
+
+    // ------------------------------------------------------------------
+    // Requests Spring rejects before the service is reached
+    // ------------------------------------------------------------------
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("malformedRequests")
+    void malformedRequests_areRejectedWithBadRequest(String description, RequestBuilder request)
+        throws Exception {
+        mockMvc.perform(request).andExpect(status().isBadRequest());
+    }
+
+    static Stream<Arguments> malformedRequests() {
+        MediaType json = MediaType.APPLICATION_JSON;
+        return Stream.of(
+            Arguments.of("POST /trips with invalid JSON",
+                post("/trips").contentType(json).content("{ this is not json")),
+            Arguments.of("POST /trips with no body",
+                post("/trips").contentType(json)),
+            Arguments.of("POST /trips with an impossible date",
+                post("/trips").contentType(json).content(
+                    "{\"username\":\"bob\",\"destination\":\"Paris\","
+                        + "\"startDate\":\"2027-13-45\",\"endDate\":\"2027-06-15\"}")),
+            Arguments.of("PUT /trips/{id} with an invalid trip id",
+                put("/trips/not-a-uuid").contentType(json).content("{}")),
+            Arguments.of("POST /trips/{id}/flights with an invalid trip id",
+                post("/trips/not-a-uuid/flights").contentType(json).content("{}")),
+            Arguments.of("GET /trips/{id}/flights with an invalid trip id",
+                get("/trips/not-a-uuid/flights").param("username", "bob")),
+            Arguments.of("GET /trips/{id}/flights without username",
+                get("/trips/" + UUID.randomUUID() + "/flights")),
+            Arguments.of("DELETE /trips/{id} with an invalid trip id",
+                delete("/trips/not-a-uuid").param("username", "bob")),
+            Arguments.of("DELETE /trips/{id} without username",
+                delete("/trips/" + UUID.randomUUID())),
+            Arguments.of("DELETE /trips/{id}/flights/{n} with an invalid trip id",
+                delete("/trips/not-a-uuid/flights/RO101").param("username", "bob")),
+            Arguments.of("GET /trips without username",
+                get("/trips").param("startDate", "2027-06-01").param("endDate", "2027-06-30")),
+            Arguments.of("GET /trips without startDate",
+                get("/trips").param("username", "bob").param("endDate", "2027-06-30")),
+            Arguments.of("GET /trips without endDate",
+                get("/trips").param("username", "bob").param("startDate", "2027-06-01")),
+            Arguments.of("GET /trips with a startDate that is not a date",
+                get("/trips").param("username", "bob").param("startDate", "not-a-date")
+                    .param("endDate", "2027-06-30"))
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // helpers
+    // ------------------------------------------------------------------
+
+    /** A user with trips in Jun, Jul and Aug 2027, plus an unrelated user's trip in Jun. */
+    private String userWithThreeTrips() throws Exception {
+        String user = user("carol");
+        createTrip(user, "Paris", LocalDate.of(2027, 6, 10), LocalDate.of(2027, 6, 15));
+        createTrip(user, "Rome", LocalDate.of(2027, 7, 1), LocalDate.of(2027, 7, 5));
+        createTrip(user, "Oslo", LocalDate.of(2027, 8, 10), LocalDate.of(2027, 8, 20));
+        createTrip(user("dave"), "Madrid", LocalDate.of(2027, 6, 10), LocalDate.of(2027, 6, 15));
+        return user;
+    }
+
+    private Accommodation saveHotel() {
+        return saveAccommodation("Hotel Central", "Str. Memorandumului 10", "Cluj");
+    }
+
+    private UUID createTrip(String username, String destination, LocalDate start, LocalDate end)
+        throws Exception {
+        MvcResult result = postTrip(tripDto(username, destination, start, end))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        UUID id = objectMapper.readValue(result.getResponse().getContentAsString(), UUID.class);
+        createdTripIds.add(id);
+        return id;
+    }
+
+    private ResultActions postTrip(TripDTO dto) throws Exception {
+        return mockMvc.perform(post("/trips")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(dto)));
+    }
+
+    private ResultActions putTrip(UUID tripId, TripDTO dto) throws Exception {
+        return mockMvc.perform(put("/trips/" + tripId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(dto)));
+    }
+
+    private ResultActions deleteTrip(UUID tripId, String username) throws Exception {
+        return mockMvc.perform(delete("/trips/" + tripId).param("username", username));
+    }
+
+    private ResultActions searchTrips(String username, String startDate, String endDate)
+        throws Exception {
+        return mockMvc.perform(get("/trips")
+            .param("username", username)
+            .param("startDate", startDate)
+            .param("endDate", endDate));
+    }
+
+    private ResultActions addFlight(UUID tripId, String username, String flightNumber)
+        throws Exception {
+        AddFlightToTripRequest request = new AddFlightToTripRequest();
+        request.setUsername(username);
+        request.setFlightNumber(flightNumber);
+
+        return mockMvc.perform(post("/trips/" + tripId + "/flights")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)));
+    }
+
+    private ResultActions getFlights(UUID tripId, String username) throws Exception {
+        return mockMvc.perform(get("/trips/" + tripId + "/flights").param("username", username));
+    }
+
+    private ResultActions removeFlight(UUID tripId, String flightNumber, String username)
+        throws Exception {
+        return mockMvc.perform(delete("/trips/" + tripId + "/flights/" + flightNumber)
+            .param("username", username));
+    }
+
+    private Flight saveFlight(String flightNumber, Instant departure, Instant arrival, int seats) {
+        Flight flight = new Flight();
+        flight.setFlightNumber(flightNumber);
+        flight.setDepartureAirportCode("CLJ");
+        flight.setArrivalAirportCode("CDG");
+        flight.setDepartureTime(departure);
+        flight.setArrivalTime(arrival);
+        flight.setNumberOfSeats(seats);
+        flight.setPrice(new BigDecimal("150.00"));
+
+        Flight saved = flightRepository.save(flight);
+        createdFlightIds.add(saved.getId());
+        return saved;
+    }
+
+    private static TripDTO tripDto(
+        String username, String destination, LocalDate start, LocalDate end
+    ) {
+        TripDTO dto = new TripDTO();
+        dto.setUsername(username);
+        dto.setDestination(destination);
+        dto.setStartDate(start);
+        dto.setEndDate(end);
+        return dto;
+    }
+
+    /** Flight times are serialised in the server's time zone, so compare instants, not text. */
+    private static Instant instantAt(String json, String path) {
+        String value = JsonPath.read(json, path);
+        return ZonedDateTime.parse(value).toInstant();
+    }
+
+    private ResultActions addAccommodation(UUID tripId, String username, UUID accommodationId)
+        throws Exception {
+        return mockMvc.perform(post("/trips/" + tripId + "/accommodations")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(
+                new TripAccommodationRequest(username, accommodationId))));
+    }
+
+    private ResultActions getAccommodations(UUID tripId, String username) throws Exception {
+        return mockMvc.perform(get("/trips/" + tripId + "/accommodations")
+            .param("username", username));
+    }
+
+    private ResultActions removeAccommodation(UUID tripId, UUID accommodationId, String username)
+        throws Exception {
+        return mockMvc.perform(delete("/trips/" + tripId + "/accommodations/" + accommodationId)
+            .param("username", username));
+    }
+
+    private Accommodation saveAccommodation(String name, String address, String city) {
+        Accommodation saved = accommodationRepository.save(
+            new Accommodation(name, BigDecimal.valueOf(250), address, city));
+        createdAccommodationIds.add(saved.getId());
+        return saved;
+    }
+
+    private void createUser(String username) {
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(username + "@test.local");
+        user.setFirstName("Test");
+        user.setLastName("User");
+        createdUserIds.add(userRepository.save(user).getId());
+    }
+
+    /** Creates a real user with a unique name; the API rejects trips for unknown users. */
+    private String user(String prefix) {
+        String username = unique(prefix);
+        createUser(username);
+        return username;
+    }
+
+    private static String unique(String prefix) {
+        return prefix + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 }

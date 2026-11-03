@@ -18,13 +18,11 @@ import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import integra.vacation_planner_backend.dto.PageResponse;
-import integra.vacation_planner_backend.pagination.Pagination;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -74,12 +72,10 @@ public class TripService {
         return tripRepository.save(trip).getId();
     }
 
-    public PageResponse<TripResponse> getTripsBetweenDates(
+    public List<TripResponse> getTripsBetweenDates(
         String username,
         LocalDate startDate,
-        LocalDate endDate,
-        int page,
-        int size
+        LocalDate endDate
     ) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("username is required");
@@ -89,39 +85,21 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
-        PageRequest pageable = Pagination.create(
-            page,
-            size,
-            Sort.by(
-                Sort.Order.asc("startDate"),
-                Sort.Order.asc("id")
-            )
-        );
-
         User user = findUser(username);
 
-        Page<TripResponse> trips = tripRepository
+        return tripRepository
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                user,
-                startDate,
-                endDate,
-                pageable
+                user, startDate, endDate
             )
+            .stream()
             .map(trip -> new TripResponse(
                 trip.getId(),
                 user.getUsername(),
                 trip.getDestination(),
                 trip.getStartDate(),
                 trip.getEndDate()
-            ));
-
-        return new PageResponse<>(
-            trips.getContent(),
-            trips.getNumber(),
-            trips.getSize(),
-            trips.getTotalElements(),
-            trips.getTotalPages()
-        );
+            ))
+            .toList();
     }
 
     @Transactional
@@ -199,21 +177,10 @@ public class TripService {
     }
 
     @Transactional
-    public PageResponse<TripAccommodationResponse> getTripAccommodations(
+    public List<TripAccommodationResponse> getTripAccommodations(
         UUID tripId,
-        String username,
-        int page,
-        int size
+        String username
     ) {
-        PageRequest pageable = Pagination.create(
-            page,
-            size,
-            Sort.by(
-                Sort.Order.asc("name"),
-                Sort.Order.asc("id")
-            )
-        );
-
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() -> new NotFoundException("Trip not found"));
 
@@ -221,23 +188,17 @@ public class TripService {
             throw new ForbiddenException("User is not the owner of this trip");
         }
 
-        Page<TripAccommodationResponse> accommodations = accommodationRepository
-            .findByTrips_Id(tripId, pageable)
+        return trip.getAccommodations()
+            .stream()
+            .sorted(Comparator.comparing(Accommodation::getPricePerNight))
             .map(accommodation -> new TripAccommodationResponse(
                 accommodation.getId(),
                 accommodation.getName(),
                 accommodation.getAddress(),
                 accommodation.getCity(),
                 accommodation.getPricePerNight()
-            ));
-
-        return new PageResponse<>(
-            accommodations.getContent(),
-            accommodations.getNumber(),
-            accommodations.getSize(),
-            accommodations.getTotalElements(),
-            accommodations.getTotalPages()
-        );
+            ))
+            .toList();
     }
 
     @Transactional

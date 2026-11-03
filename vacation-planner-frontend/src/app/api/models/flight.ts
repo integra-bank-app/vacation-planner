@@ -9,4 +9,5 @@ export interface Flight {
   flightNumber?: string;
   id?: string;
   numberOfSeats?: number;
+  price?: number;
 }

@@ -7,4 +7,5 @@ export interface FlightResponse {
   departureAirport?: string;
   departureTime?: string;
   flightNumber?: string;
+  price?: number;
 }
