@@ -197,7 +197,7 @@ public class TripService {
             .orElseThrow(() ->  new TripNotFoundException("Trip not found"));
 
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("username is required");
+            throw new IllegalArgumentException("Username is required");
         }
 
         if (!trip.getUser().getUsername().equals(username)) {
