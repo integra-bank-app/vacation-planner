@@ -1,6 +1,7 @@
 package integra.vacation_planner_backend.controller;
 
-import integra.vacation_planner_backend.domain.Trip;
+import integra.vacation_planner_backend.dto.AddFlightToTripRequest;
+import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.dto.TripRestaurantRequestDTO;
@@ -9,6 +10,7 @@ import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.service.TripService;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,6 +63,37 @@ public class TripController {
     @DeleteMapping("/{tripId}")
     public void deleteTrip(@PathVariable UUID tripId, @RequestParam String username) {
         tripService.deleteTrip(tripId, username);
+    }
+
+    @PostMapping("{tripId}/flights")
+    public ResponseEntity<Void> addFlightToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody AddFlightToTripRequest request
+    ) {
+        tripService.addFlightToTrip(
+            tripId,
+            request.getUsername(),
+            request.getFlightNumber()
+        );
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{tripId}/flights")
+    public List<FlightResponse> getFlights(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripService.getTripFlights(tripId, username);
+    }
+
+    @DeleteMapping("/{tripId}/flights/{flightNumber}")
+    public void deleteTripFlight(
+        @PathVariable UUID tripId,
+        @PathVariable String flightNumber,
+        @RequestParam String username
+    ) {
+        tripService.deleteFlightFromTrip(tripId, flightNumber, username);
     }
 
     @PostMapping("/{tripId}/restaurants")

@@ -3,6 +3,7 @@
 
 export type { AccommodationRequest } from './models/accommodation-request';
 export type { AccommodationResponse } from './models/accommodation-response';
+export type { AddFlightToTripRequest } from './models/add-flight-to-trip-request';
 export type { Flight } from './models/flight';
 export type { FlightRequest } from './models/flight-request';
 export type { FlightResponse } from './models/flight-response';
