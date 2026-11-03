@@ -45,6 +45,7 @@ class FlightPaginationIntegrationTest {
                 departure.plus(index + 2, ChronoUnit.HOURS)
             );
             flight.setNumberOfSeats(180);
+            flight.setPrice(java.math.BigDecimal.valueOf(150));
             flightRepository.save(flight);
         }
 

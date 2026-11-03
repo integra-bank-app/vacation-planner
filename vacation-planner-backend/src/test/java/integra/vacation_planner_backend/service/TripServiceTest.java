@@ -1010,22 +1010,42 @@ public class TripServiceTest {
         );
         Trip trip = storedTripWithFlights(later, earlier);
 
-        List<FlightResponse> result =
-            tripService.getTripFlights(trip.getId(), "bob");
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
+        );
 
-        assertEquals(2, result.size());
-        assertEquals("RO101", result.get(0).flightNumber());
-        assertEquals("RO202", result.get(1).flightNumber());
+        when(flightRepository.findFlightsByTripId(trip.getId(), pageable))
+            .thenReturn(new PageImpl<>(
+                List.of(earlier, later), pageable, 2
+            ));
 
-        assertEquals("OTP", result.get(0).departureAirport());
-        assertEquals("CDG", result.get(0).arrivalAirport());
+        PageResponse<FlightResponse> result =
+            tripService.getTripFlights(trip.getId(), "bob", 0, 10);
+
+        verify(flightRepository).findFlightsByTripId(trip.getId(), pageable);
+
+        assertEquals(2, result.content().size());
+        assertEquals(2L, result.totalElements());
+        assertEquals(1, result.totalPages());
+        assertEquals(0, result.page());
+        assertEquals(10, result.size());
+
+        assertEquals("RO101", result.content().get(0).flightNumber());
+        assertEquals("RO202", result.content().get(1).flightNumber());
+        assertEquals("OTP", result.content().get(0).departureAirport());
+        assertEquals("CDG", result.content().get(0).arrivalAirport());
         assertEquals(
             earlier.getDepartureTime().atZone(ZoneId.systemDefault()),
-            result.get(0).departureTime()
+            result.content().get(0).departureTime()
         );
         assertEquals(
             earlier.getArrivalTime().atZone(ZoneId.systemDefault()),
-            result.get(0).arrivalTime()
+            result.content().get(0).arrivalTime()
         );
     }
 
@@ -1033,10 +1053,26 @@ public class TripServiceTest {
     void getTripFlights_shouldReturnEmptyListWhenTripHasNoFlights() {
         Trip trip = storedTripWithFlights();
 
-        List<FlightResponse> result =
-            tripService.getTripFlights(trip.getId(), "bob");
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
+        );
 
-        assertTrue(result.isEmpty());
+        when(flightRepository.findFlightsByTripId(trip.getId(), pageable))
+            .thenReturn(new PageImpl<Flight>(List.of(), pageable, 0));
+
+        PageResponse<FlightResponse> result =
+            tripService.getTripFlights(trip.getId(), "bob", 0, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(0L, result.totalElements());
+        assertEquals(0, result.totalPages());
+
+        verify(flightRepository).findFlightsByTripId(trip.getId(), pageable);
     }
 
     @Test
@@ -1045,7 +1081,7 @@ public class TripServiceTest {
 
         assertThrows(
             UnauthorizedTripAccessException.class,
-            () -> tripService.getTripFlights(trip.getId(), "alice")
+            () -> tripService.getTripFlights(trip.getId(), "alice", 0, 10)
         );
     }
 
@@ -1058,7 +1094,7 @@ public class TripServiceTest {
 
         assertThrows(
             TripNotFoundException.class,
-            () -> tripService.getTripFlights(tripId, "bob")
+            () -> tripService.getTripFlights(tripId, "bob", 0, 10)
         );
     }
 
@@ -1068,7 +1104,7 @@ public class TripServiceTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> tripService.getTripFlights(trip.getId(), " ")
+            () -> tripService.getTripFlights(trip.getId(), " ", 0, 10)
         );
     }
 
@@ -1078,7 +1114,7 @@ public class TripServiceTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> tripService.getTripFlights(trip.getId(), null)
+            () -> tripService.getTripFlights(trip.getId(), null, 0, 10)
         );
     }
 

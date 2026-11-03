@@ -19,7 +19,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -95,12 +94,6 @@ class FlightServiceTest {
             "FCO",
             Instant.parse("2026-10-10T08:00:00Z"),
             Instant.parse("2026-10-10T10:00:00Z"),
-            0
-            "W43381",
-            "CLJ",
-            "FCO",
-            Instant.parse("2026-10-10T08:00:00Z"),
-            Instant.parse("2026-10-10T10:00:00Z"),
             0,
             new BigDecimal("150.00")
         );
@@ -114,12 +107,6 @@ class FlightServiceTest {
     @Test
     void createFlight_arrivalBeforeDeparture_throwsValidationException() {
         FlightRequest request = new FlightRequest(
-            "W43381",
-            "CLJ",
-            "FCO",
-            Instant.parse("2026-10-10T10:00:00Z"),
-            Instant.parse("2026-10-10T08:00:00Z"),
-            180
             "W43381",
             "CLJ",
             "FCO",
@@ -238,7 +225,8 @@ class FlightServiceTest {
                 flight.getDepartureAirportCode(),
                 flight.getArrivalAirportCode(),
                 flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault())
+                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+                flight.getPrice()
             )),
             result.content()
         );
@@ -439,12 +427,6 @@ class FlightServiceTest {
 
     private FlightRequest requestWithPrice(BigDecimal price) {
         return new FlightRequest(
-            "W43381",
-            "CLJ",
-            "FCO",
-            Instant.parse("2026-10-10T08:00:00Z"),
-            Instant.parse("2026-10-10T10:00:00Z"),
-            180
             "W43381",
             "CLJ",
             "FCO",

@@ -1,8 +1,9 @@
 package integra.vacation_planner_backend.controller;
 
+import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.dto.FlightRequest;
 import integra.vacation_planner_backend.dto.FlightResponse;
-import integra.vacation_planner_backend.domain.Flight;
+import integra.vacation_planner_backend.dto.PageResponse;
 import integra.vacation_planner_backend.service.FlightService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +13,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -39,12 +41,15 @@ class FlightControllerTest {
 
     @Test
     void createFlight_returnsCreatedFlight() throws Exception {
-        when(flightService.createFlight(any(FlightRequest.class))).thenReturn(flight(180));
+        when(flightService.createFlight(any(FlightRequest.class)))
+            .thenReturn(flight(180));
+
         mockMvc.perform(post("/flights")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(flightJson(180)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.flightNumber").value("W43381"));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(flightJson(180)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flightNumber").value("W43381"))
+            .andExpect(jsonPath("$.price").value(150.00));
 
         verify(flightService).createFlight(any(FlightRequest.class));
     }
@@ -69,6 +74,7 @@ class FlightControllerTest {
             .andExpect(jsonPath("$.content[0].flightNumber").value("W43381"))
             .andExpect(jsonPath("$.content[0].departureAirport").value("CLJ"))
             .andExpect(jsonPath("$.content[0].arrivalAirport").value("FCO"))
+            .andExpect(jsonPath("$.content[0].price").value(150.00))
             .andExpect(jsonPath("$.page").value(0))
             .andExpect(jsonPath("$.size").value(10))
             .andExpect(jsonPath("$.totalElements").value(1))
@@ -85,24 +91,8 @@ class FlightControllerTest {
             5,
             6L,
             2
-    void getFlights_returnsFlights() throws Exception {
-        FlightResponse response = new FlightResponse(
-                "W43381",
-                "CLJ",
-                "FCO",
-                Instant.parse("2026-10-10T08:00:00Z").atZone(ZoneId.systemDefault()),
-                Instant.parse("2026-10-10T10:00:00Z").atZone(ZoneId.systemDefault()),
-                new BigDecimal("150.00")
         );
-        when(flightService.getFlights("CLJ")).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/flights").param("airportCode", "CLJ"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].flightNumber").value("W43381"))
-                .andExpect(jsonPath("$[0].departureAirport").value("CLJ"))
-                .andExpect(jsonPath("$[0].arrivalAirport").value("FCO"))
-                .andExpect(jsonPath("$[0].price").value(150.00));
-        verify(flightService).getFlights("CLJ");
         when(flightService.getFlights("CLJ", 1, 5))
             .thenReturn(response);
 
@@ -112,6 +102,7 @@ class FlightControllerTest {
                 .param("size", "5"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].flightNumber").value("W43381"))
+            .andExpect(jsonPath("$.content[0].price").value(150.00))
             .andExpect(jsonPath("$.page").value(1))
             .andExpect(jsonPath("$.size").value(5))
             .andExpect(jsonPath("$.totalElements").value(6))
@@ -220,21 +211,40 @@ class FlightControllerTest {
 
     @Test
     void updateFlight_returnsUpdatedFlight() throws Exception {
-        when(flightService.updateFlight(any(FlightRequest.class))).thenReturn(flight(200));
+        when(flightService.updateFlight(any(FlightRequest.class)))
+            .thenReturn(flight(200));
+
         mockMvc.perform(put("/flights")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(flightJson(200)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.flightNumber").value("W43381"))
-                .andExpect(jsonPath("$.numberOfSeats").value(200));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(flightJson(200)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flightNumber").value("W43381"))
+            .andExpect(jsonPath("$.numberOfSeats").value(200))
+            .andExpect(jsonPath("$.price").value(150.00));
+
         verify(flightService).updateFlight(any(FlightRequest.class));
     }
 
     @Test
     void deleteFlight_callsService() throws Exception {
-        mockMvc.perform(delete("/flights").param("flightNumber", "W43381"))
-                .andExpect(status().isOk());
+        mockMvc.perform(delete("/flights")
+                .param("flightNumber", "W43381"))
+            .andExpect(status().isOk());
+
         verify(flightService).deleteFlight("W43381");
+    }
+
+    private FlightResponse flightResponse() {
+        return new FlightResponse(
+            "W43381",
+            "CLJ",
+            "FCO",
+            Instant.parse("2026-10-10T08:00:00Z")
+                .atZone(ZoneId.systemDefault()),
+            Instant.parse("2026-10-10T10:00:00Z")
+                .atZone(ZoneId.systemDefault()),
+            new BigDecimal("150.00")
+        );
     }
 
     private Flight flight(Integer seats) {
@@ -245,6 +255,7 @@ class FlightControllerTest {
         flight.setDepartureTime(Instant.parse("2026-10-10T08:00:00Z"));
         flight.setArrivalTime(Instant.parse("2026-10-10T10:00:00Z"));
         flight.setNumberOfSeats(seats);
+        flight.setPrice(new BigDecimal("150.00"));
         return flight;
     }
 
@@ -256,18 +267,9 @@ class FlightControllerTest {
               "arrivalAirportCode": "FCO",
               "departureTime": "2026-10-10T08:00:00Z",
               "arrivalTime": "2026-10-10T10:00:00Z",
-              "numberOfSeats": %d
+              "numberOfSeats": %d,
+              "price": 150.00
             }
             """.formatted(seats);
-                {
-                  "flightNumber": "W43381",
-                  "departureAirportCode": "CLJ",
-                  "arrivalAirportCode": "FCO",
-                  "departureTime": "2026-10-10T08:00:00Z",
-                  "arrivalTime": "2026-10-10T10:00:00Z",
-                  "numberOfSeats": %d,
-                  "price": 150.00
-                }
-                """.formatted(seats);
     }
 }

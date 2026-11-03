@@ -23,6 +23,7 @@ public interface FlightRepository extends JpaRepository<Flight, UUID> {
         String arrivalAirportCode,
         Pageable pageable
     );
+
     List<Flight> findByDepartureAirportCodeOrArrivalAirportCode(String departureAirportCode, String arrivalAirportCode);
 
     List<Flight> findByDepartureTimeAfter(Instant time);
@@ -31,5 +32,26 @@ public interface FlightRepository extends JpaRepository<Flight, UUID> {
     @Query("SELECT f FROM Flight f WHERE f.flightNumber = :flightNumber")
     Optional<Flight> findByFlightNumberForUpdate(
         @Param("flightNumber") String flightNumber
+    );
+
+    @Query(
+        value = """
+        select f from Flight f
+        where f in (
+            select linked from Trip t join t.flights linked
+            where t.id = :tripId
+        )
+        """,
+        countQuery = """
+        select count(f) from Flight f
+        where f in (
+            select linked from Trip t join t.flights linked
+            where t.id = :tripId
+        )
+        """
+    )
+    Page<Flight> findFlightsByTripId(
+        @Param("tripId") UUID tripId,
+        Pageable pageable
     );
 }

@@ -8,22 +8,34 @@ import integra.vacation_planner_backend.exception.ValidationException;
 import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.repository.FlightRepository;
 import org.springframework.stereotype.Service;
-
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.random.RandomGenerator;
+
+import java.time.ZoneId;
+import java.util.List;
+
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.pagination.Pagination;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class FlightService {
 
     private final FlightRepository flightRepository;
 
-    public FlightService(FlightRepository flightRepository) {
+    private final RandomGenerator randomGenerator;
+
+    public FlightService(
+        FlightRepository flightRepository,
+        RandomGenerator randomGenerator
+    ) {
         this.flightRepository = flightRepository;
+        this.randomGenerator = randomGenerator;
     }
 
     public Flight createFlight(FlightRequest request) {
@@ -40,23 +52,44 @@ public class FlightService {
         flight.setDepartureTime(request.departureTime());
         flight.setArrivalTime(request.arrivalTime());
         flight.setNumberOfSeats(request.numberOfSeats());
+        flight.setPrice(request.price());
 
         return flightRepository.save(flight);
     }
 
-    public List<FlightResponse> getFlights(String airportCode) {
+    public PageResponse<FlightResponse> getFlights(
+        String airportCode,
+        int page,
+        int size
+    ) {
         if (airportCode == null || airportCode.isBlank()) {
             throw new ValidationException("Airport code is required");
         }
 
-        List<Flight> flights = flightRepository.findByDepartureAirportCodeOrArrivalAirportCode(
-                airportCode,
-                airportCode
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
         );
 
-        return flights.stream()
-                .map(this::toResponse)
-                .toList();
+        Page<FlightResponse> flights = flightRepository
+            .findByDepartureAirportCodeOrArrivalAirportCode(
+                airportCode,
+                airportCode,
+                pageable
+            )
+            .map(this::toResponse);
+
+        return new PageResponse<>(
+            flights.getContent(),
+            flights.getNumber(),
+            flights.getSize(),
+            flights.getTotalElements(),
+            flights.getTotalPages()
+        );
     }
 
     private FlightResponse toResponse(Flight flight) {
@@ -65,13 +98,8 @@ public class FlightService {
             flight.getDepartureAirportCode(),
             flight.getArrivalAirportCode(),
             flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-            flight.getArrivalTime().atZone(ZoneId.systemDefault())
-                flight.getFlightNumber(),
-                flight.getDepartureAirportCode(),
-                flight.getArrivalAirportCode(),
-                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
-                flight.getPrice()
+            flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+            flight.getPrice()
         );
     }
 
@@ -86,6 +114,7 @@ public class FlightService {
         flight.setDepartureTime(request.departureTime());
         flight.setArrivalTime(request.arrivalTime());
         flight.setNumberOfSeats(request.numberOfSeats());
+        flight.setPrice(request.price());
 
         return flightRepository.save(flight);
     }
@@ -99,6 +128,31 @@ public class FlightService {
                 .orElseThrow(() -> new NotFoundException("Flight not found"));
 
         flightRepository.delete(flight);
+    }
+
+    private static final BigDecimal MIN_PRICE = new BigDecimal("1.00");
+
+    private static final int MAX_PERCENT = 10;
+
+    public void applyDailyChange() {
+        List<Flight> flights = flightRepository
+            .findByDepartureTimeAfter(Instant.now());
+
+        for (Flight flight : flights) {
+            int percent = randomGenerator.nextInt(-MAX_PERCENT, MAX_PERCENT + 1);
+
+            BigDecimal factor = BigDecimal.ONE.add(
+                BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100))
+            );
+
+            BigDecimal newPrice = flight.getPrice()
+                .multiply(factor)
+                .setScale(2, RoundingMode.HALF_UP);
+
+            flight.setPrice(newPrice.max(MIN_PRICE));
+        }
+
+        flightRepository.saveAll(flights);
     }
 
     private void validateFlight(FlightRequest request) {
@@ -124,6 +178,11 @@ public class FlightService {
 
         if (request.numberOfSeats() == null || request.numberOfSeats() <= 0) {
             throw new ValidationException("Number of seats must be greater than 0");
+        }
+
+        if (request.price() == null
+            || request.price().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Price must be greater than 0");
         }
     }
 }

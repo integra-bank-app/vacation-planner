@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import integra.vacation_planner_backend.dto.PageResponse;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -106,47 +107,71 @@ class TripRestaurantIntegrationTest {
             LocalTime.of(19, 0)
         );
 
-        List<TripRestaurantResponseDTO> visits =
+        PageResponse<TripRestaurantResponseDTO> result =
             tripRestaurantService.getRestaurantsForTrip(
                 trip.getId(),
-                "alice"
+                "alice",
+                0,
+                10
             );
 
+        List<TripRestaurantResponseDTO> visits = result.content();
+
         assertEquals(1, visits.size());
+        assertEquals(1L, result.totalElements());
+        assertEquals(1, result.totalPages());
+        assertEquals(0, result.page());
+        assertEquals(10, result.size());
         assertEquals(restaurant.getId(), visits.get(0).restaurantId());
         assertEquals("Test Restaurant", visits.get(0).restaurantName());
         assertEquals(LocalDate.of(2026, 6, 12), visits.get(0).visitDate());
         assertEquals(LocalTime.of(19, 0), visits.get(0).visitTime());
     }
 
-    @Test
-    void getRestaurantsForTrip_shouldReturnVisitsInChronologicalOrder() {
-        tripRestaurantService.addRestaurantToTrip(
-            trip.getId(),
-            "alice",
-            restaurant.getId(),
-            LocalDate.of(2026, 6, 12),
-            LocalTime.of(19, 0)
-        );
-
-        tripRestaurantService.addRestaurantToTrip(
-            trip.getId(),
-            "alice",
-            restaurant.getId(),
-            LocalDate.of(2026, 6, 11),
-            LocalTime.of(18, 0)
-        );
-
-        List<TripRestaurantResponseDTO> visits =
-            tripRestaurantService.getRestaurantsForTrip(
-                trip.getId(),
-                "alice"
+        @Test
+        void getRestaurantsForTrip_shouldReturnVisitsOrderedByRestaurantName() {
+            Restaurant firstRestaurant = restaurantRepository.saveAndFlush(
+                new Restaurant(
+                    UUID.randomUUID(),
+                    "Alpha Restaurant",
+                    "Second Street",
+                    LocalTime.of(9, 0),
+                    LocalTime.of(22, 0)
+                )
             );
 
-        assertEquals(2, visits.size());
-        assertEquals(LocalDate.of(2026, 6, 11), visits.get(0).visitDate());
-        assertEquals(LocalDate.of(2026, 6, 12), visits.get(1).visitDate());
-    }
+            tripRestaurantService.addRestaurantToTrip(
+                trip.getId(),
+                "alice",
+                restaurant.getId(),
+                LocalDate.of(2026, 6, 11),
+                LocalTime.of(18, 0)
+            );
+
+            tripRestaurantService.addRestaurantToTrip(
+                trip.getId(),
+                "alice",
+                firstRestaurant.getId(),
+                LocalDate.of(2026, 6, 12),
+                LocalTime.of(19, 0)
+            );
+
+            PageResponse<TripRestaurantResponseDTO> result =
+                tripRestaurantService.getRestaurantsForTrip(
+                    trip.getId(), "alice", 0, 10
+                );
+
+            assertEquals(2L, result.totalElements());
+            assertEquals(2, result.content().size());
+            assertEquals(
+                "Alpha Restaurant",
+                result.content().get(0).restaurantName()
+            );
+            assertEquals(
+                "Test Restaurant",
+                result.content().get(1).restaurantName()
+            );
+        }
 
     @Test
     void removeRestaurantFromTrip_shouldDeleteVisitFromDatabase() {

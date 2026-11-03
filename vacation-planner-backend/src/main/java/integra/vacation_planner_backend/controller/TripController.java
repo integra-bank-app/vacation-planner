@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -111,11 +112,13 @@ public class TripController {
     }
 
     @GetMapping("/{tripId}/flights")
-    public List<FlightResponse> getFlights(
+    public PageResponse<FlightResponse> getFlights(
         @PathVariable UUID tripId,
-        @RequestParam String username
+        @RequestParam String username,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
     ) {
-        return tripService.getTripFlights(tripId, username);
+        return tripService.getTripFlights(tripId, username, page, size);
     }
 
     @DeleteMapping("/{tripId}/flights/{flightNumber}")
@@ -142,11 +145,15 @@ public class TripController {
     }
 
     @GetMapping("/{tripId}/restaurants")
-    public List<TripRestaurantResponseDTO> getRestaurantsForTrip(
+    public PageResponse<TripRestaurantResponseDTO> getRestaurantsForTrip(
         @PathVariable UUID tripId,
-        @RequestParam String username
+        @RequestParam String username,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
     ) {
-        return tripRestaurantService.getRestaurantsForTrip(tripId, username);
+        return tripRestaurantService.getRestaurantsForTrip(
+            tripId, username, page, size
+        );
     }
 
     @DeleteMapping("/{tripId}/restaurants/{visitId}")
