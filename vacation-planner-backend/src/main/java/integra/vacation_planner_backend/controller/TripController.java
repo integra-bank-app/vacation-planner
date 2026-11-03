@@ -1,11 +1,12 @@
 package integra.vacation_planner_backend.controller;
 
-import integra.vacation_planner_backend.domain.Flight;
-import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.dto.AddFlightToTripRequest;
 import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.dto.TripRestaurantRequestDTO;
+import integra.vacation_planner_backend.dto.TripRestaurantResponseDTO;
+import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.service.TripService;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
@@ -30,13 +31,38 @@ public class TripController {
 
     private final TripService tripService;
 
-    public TripController(TripService tripService) {
+    private final TripRestaurantService tripRestaurantService;
+
+    public TripController(
+        TripService tripService,
+        TripRestaurantService tripRestaurantService
+    ) {
         this.tripService = tripService;
+        this.tripRestaurantService = tripRestaurantService;
     }
 
     @PostMapping
     public UUID createTrip(@RequestBody TripDTO dto) {
         return tripService.createTrip(dto);
+    }
+
+    @GetMapping
+    public List<TripResponse> getTrips(
+        @RequestParam String username,
+        @RequestParam LocalDate startDate,
+        @RequestParam LocalDate endDate
+    ) {
+        return tripService.getTripsBetweenDates(username, startDate, endDate);
+    }
+
+    @PutMapping("/{tripId}")
+    public void updateTrip(@PathVariable UUID tripId, @RequestBody TripDTO dto) {
+        tripService.updateTrip(tripId, dto);
+    }
+
+    @DeleteMapping("/{tripId}")
+    public void deleteTrip(@PathVariable UUID tripId, @RequestParam String username) {
+        tripService.deleteTrip(tripId, username);
     }
 
     @PostMapping("{tripId}/flights")
@@ -53,47 +79,12 @@ public class TripController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{tripId}/accommodations")
-    public void addAccommodationToTrip(
-        @PathVariable UUID tripId,
-        @RequestBody TripAccommodationRequest request
-    ) {
-        tripService.addAccommodationToTrip(tripId, request);
-    }
-
-    @GetMapping
-    public List<TripResponse> getTrips(
-        @RequestParam String username,
-        @RequestParam LocalDate startDate,
-        @RequestParam LocalDate endDate
-    ) {
-        return tripService.getTripsBetweenDates(username, startDate, endDate);
-    }
-
     @GetMapping("/{tripId}/flights")
     public List<FlightResponse> getFlights(
         @PathVariable UUID tripId,
         @RequestParam String username
     ) {
         return tripService.getTripFlights(tripId, username);
-    }
-
-    @GetMapping("/{tripId}/accommodations")
-    public List<TripAccommodationResponse> getTripAccommodations(
-        @PathVariable UUID tripId,
-        @RequestParam String username
-    ) {
-        return tripService.getTripAccommodations(tripId, username);
-    }
-
-    @PutMapping("/{tripId}")
-    public void updateTrip(@PathVariable UUID tripId, @RequestBody TripDTO dto) {
-        tripService.updateTrip(tripId, dto);
-    }
-
-    @DeleteMapping("/{tripId}")
-    public void deleteTrip(@PathVariable UUID tripId, @RequestParam String username) {
-        tripService.deleteTrip(tripId, username);
     }
 
     @DeleteMapping("/{tripId}/flights/{flightNumber}")
@@ -103,6 +94,55 @@ public class TripController {
         @RequestParam String username
     ) {
         tripService.deleteFlightFromTrip(tripId, flightNumber, username);
+    }
+
+    @PostMapping("/{tripId}/restaurants")
+    public UUID addRestaurantToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody TripRestaurantRequestDTO request
+    ) {
+        return tripRestaurantService.addRestaurantToTrip(
+            tripId,
+            request.username(),
+            request.restaurantId(),
+            request.visitDate(),
+            request.visitTime()
+        );
+    }
+
+    @GetMapping("/{tripId}/restaurants")
+    public List<TripRestaurantResponseDTO> getRestaurantsForTrip(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripRestaurantService.getRestaurantsForTrip(tripId, username);
+    }
+
+    @DeleteMapping("/{tripId}/restaurants/{visitId}")
+    public void removeRestaurantFromTrip(
+        @PathVariable UUID tripId,
+        @PathVariable UUID visitId,
+        @RequestParam String username
+    ) {
+        tripRestaurantService.removeRestaurantFromTrip(
+            tripId, visitId, username
+        );
+    }
+
+    @PostMapping("/{tripId}/accommodations")
+    public void addAccommodationToTrip(
+        @PathVariable UUID tripId,
+        @RequestBody TripAccommodationRequest request
+    ) {
+        tripService.addAccommodationToTrip(tripId, request);
+    }
+
+    @GetMapping("/{tripId}/accommodations")
+    public List<TripAccommodationResponse> getTripAccommodations(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripService.getTripAccommodations(tripId, username);
     }
 
     @DeleteMapping("/{tripId}/accommodations/{accommodationId}")

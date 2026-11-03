@@ -553,7 +553,7 @@ class TripControllerTest {
 
         addFlight(tripId, username, flight.getFlightNumber())
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error").value("username is required"));
+            .andExpect(jsonPath("$.error").value("Username is required"));
         assertThat(tripRepository.countTripsUsingFlight(flight.getId())).isZero();
     }
 

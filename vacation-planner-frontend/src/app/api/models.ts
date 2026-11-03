@@ -12,6 +12,8 @@ export type { TripAccommodationRequest } from './models/trip-accommodation-reque
 export type { TripAccommodationResponse } from './models/trip-accommodation-response';
 export type { TripDto } from './models/trip-dto';
 export type { TripResponse } from './models/trip-response';
+export type { TripRestaurantRequestDto } from './models/trip-restaurant-request-dto';
+export type { TripRestaurantResponseDto } from './models/trip-restaurant-response-dto';
 export type { UpdatePriceRequest } from './models/update-price-request';
 export type { UserRegisterRequestDto } from './models/user-register-request-dto';
 export type { UserResponseDto } from './models/user-response-dto';

@@ -9,6 +9,10 @@ export type { GetTrips$Params as GetTrips$Params } from './fn/trip-controller/ge
 export { getTrips as getTrips } from './fn/trip-controller/get-trips';
 export type { CreateTrip$Params as CreateTrip$Params } from './fn/trip-controller/create-trip';
 export { createTrip as createTrip } from './fn/trip-controller/create-trip';
+export type { GetRestaurantsForTrip$Params as GetRestaurantsForTrip$Params } from './fn/trip-controller/get-restaurants-for-trip';
+export { getRestaurantsForTrip as getRestaurantsForTrip } from './fn/trip-controller/get-restaurants-for-trip';
+export type { AddRestaurantToTrip$Params as AddRestaurantToTrip$Params } from './fn/trip-controller/add-restaurant-to-trip';
+export { addRestaurantToTrip as addRestaurantToTrip } from './fn/trip-controller/add-restaurant-to-trip';
 export type { GetFlights1$Params as GetFlights1$Params } from './fn/trip-controller/get-flights-1';
 export { getFlights1 as getFlights1 } from './fn/trip-controller/get-flights-1';
 export type { AddFlightToTrip$Params as AddFlightToTrip$Params } from './fn/trip-controller/add-flight-to-trip';
@@ -17,6 +21,8 @@ export type { GetTripAccommodations$Params as GetTripAccommodations$Params } fro
 export { getTripAccommodations as getTripAccommodations } from './fn/trip-controller/get-trip-accommodations';
 export type { AddAccommodationToTrip$Params as AddAccommodationToTrip$Params } from './fn/trip-controller/add-accommodation-to-trip';
 export { addAccommodationToTrip as addAccommodationToTrip } from './fn/trip-controller/add-accommodation-to-trip';
+export type { RemoveRestaurantFromTrip$Params as RemoveRestaurantFromTrip$Params } from './fn/trip-controller/remove-restaurant-from-trip';
+export { removeRestaurantFromTrip as removeRestaurantFromTrip } from './fn/trip-controller/remove-restaurant-from-trip';
 export type { DeleteTripFlight$Params as DeleteTripFlight$Params } from './fn/trip-controller/delete-trip-flight';
 export { deleteTripFlight as deleteTripFlight } from './fn/trip-controller/delete-trip-flight';
 export type { RemoveAccommodationFromTrip$Params as RemoveAccommodationFromTrip$Params } from './fn/trip-controller/remove-accommodation-from-trip';
