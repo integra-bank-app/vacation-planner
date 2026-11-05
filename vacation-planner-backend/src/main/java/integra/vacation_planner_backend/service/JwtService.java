@@ -31,7 +31,6 @@ public class JwtService {
                 "JWT expiration must be greater than 0"
             );
         }
-
         this.expirationMs = expirationMs;
     }
 
