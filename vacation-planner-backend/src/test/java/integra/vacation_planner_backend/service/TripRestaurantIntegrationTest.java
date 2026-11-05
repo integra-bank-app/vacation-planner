@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -54,7 +55,7 @@ class TripRestaurantIntegrationTest {
         user.setEmail("aliceAli@yahoo.com");
         user.setFirstName("Alice");
         user.setLastName("Test");
-
+        user.setPassword(new BCryptPasswordEncoder(4).encode("test-password"));
         user = userRepository.saveAndFlush(user);
 
         trip = new Trip();

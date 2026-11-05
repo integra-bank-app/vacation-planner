@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -105,6 +106,7 @@ class TripControllerTest {
     private final List<UUID> createdAccommodationIds = new ArrayList<>();
 
     private final List<UUID> createdUserIds = new ArrayList<>();
+
 
     @BeforeEach
     void createValidUser() {
@@ -1055,6 +1057,7 @@ class TripControllerTest {
         user.setEmail(username + "@test.local");
         user.setFirstName("Test");
         user.setLastName("User");
+        user.setPassword(new BCryptPasswordEncoder(4).encode("test-password"));
         createdUserIds.add(userRepository.save(user).getId());
     }
 
