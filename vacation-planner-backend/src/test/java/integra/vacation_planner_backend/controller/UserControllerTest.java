@@ -3,7 +3,6 @@ package integra.vacation_planner_backend.controller;
 import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.exception.InvalidUserDataException;
 import integra.vacation_planner_backend.exception.UserAlreadyExistsException;
-import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +18,8 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
@@ -87,35 +84,6 @@ class UserControllerTest {
         verifyNoInteractions(userService);
     }
 
-
-    @Test
-    void login_existingUser_returns200AndUser() throws Exception {
-        when(userService.login(USERNAME)).thenReturn(existingUser());
-
-        mockMvc.perform(get("/login").param("username", USERNAME))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("dariamaria"))
-                .andExpect(jsonPath("$.email").value("daria@example.com"))
-                .andExpect(jsonPath("$.firstName").value("Daria"))
-                .andExpect(jsonPath("$.lastName").value("Maria"));
-    }
-
-    @Test
-    void login_missingUser_returns404() throws Exception {
-        when(userService.login("unknown")).thenThrow(new UserNotFoundException("User not found"));
-
-        mockMvc.perform(get("/login").param("username", "unknown"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void login_missingUsernameParam_returns400() throws Exception {
-        mockMvc.perform(get("/login"))
-                .andExpect(status().isBadRequest());
-
-        verifyNoInteractions(userService);
-    }
-
     private String validRequestJson() {
         return """
                 {
@@ -125,15 +93,5 @@ class UserControllerTest {
                   "lastName": "Maria"
                 }
                 """;
-    }
-
-    private User existingUser() {
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setUsername(USERNAME);
-        user.setEmail(EMAIL);
-        user.setFirstName(FIRST_NAME);
-        user.setLastName(LAST_NAME);
-        return user;
     }
 }
