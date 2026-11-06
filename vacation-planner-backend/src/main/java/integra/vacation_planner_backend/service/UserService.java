@@ -6,6 +6,7 @@ import integra.vacation_planner_backend.exception.UserAlreadyExistsException;
 import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -21,9 +22,15 @@ public class UserService {
 
     private static final int MAX_NAME_LENGTH = 50;
 
+    private static final int MIN_PASSWORD_LENGTH = 8;
+
+    private static final int MAX_PASSWORD_LENGTH = 72;
+
+    private final PasswordEncoder passwordEncoder;
+
     private final UserRepository userRepository;
 
-    public UUID register(String username, String email, String firstName, String lastName) {
+    public UUID register(String username, String email, String password, String firstName, String lastName) {
         if (username == null || !username.matches(USERNAME_REGEX)) {
             throw new InvalidUserDataException(
                     "Username should contain only lowercase letters and numbers, and be between 3 and 20 characters long");
@@ -37,12 +44,14 @@ public class UserService {
         if (userRepository.existsByEmail(email)) {
             throw new UserAlreadyExistsException("Email already exists");
         }
+        validatePassword(password);
         validateName(firstName, "First name");
         validateName(lastName, "Last name");
 
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
         user.setFirstName(firstName);
         user.setLastName(lastName);
 
@@ -52,6 +61,15 @@ public class UserService {
     public User login(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH
+            || password.length() > MAX_PASSWORD_LENGTH) {
+            throw new InvalidUserDataException(
+                "Password must be between " + MIN_PASSWORD_LENGTH + " and "
+                    + MAX_PASSWORD_LENGTH + " characters long");
+        }
     }
 
     private void validateName(String name, String fieldLabel) {

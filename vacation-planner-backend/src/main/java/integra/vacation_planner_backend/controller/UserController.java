@@ -22,6 +22,7 @@ public class UserController {
         UUID userId = userService.register(
                 request.username(),
                 request.email(),
+                request.password(),
                 request.firstName(),
                 request.lastName()
         );

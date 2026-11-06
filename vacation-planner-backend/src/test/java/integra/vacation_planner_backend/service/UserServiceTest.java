@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -29,16 +30,23 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    private static final String USERNAME = "dariamaria";
+    private static final String USERNAME = "anamaria";
 
-    private static final String EMAIL = "dariamaria@example.com";
+    private static final String EMAIL = "anamaria@example.com";
 
-    private static final String FIRST_NAME = "Daria";
+    private static final String FIRST_NAME = "Ana";
 
-    private static final String LAST_NAME = "Berciu";
+    private static final String LAST_NAME = "Popescu";
+
+    private static final String PASSWORD = "parola123";
+
+    private static final String ENCODED_PASSWORD = "$2a$10$encodedpassword";
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -56,19 +64,21 @@ class UserServiceTest {
         UUID expectedId = UUID.randomUUID();
         when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
         when(userRepository.existsByEmail(EMAIL)).thenReturn(false);
+        when(passwordEncoder.encode(PASSWORD)).thenReturn(ENCODED_PASSWORD);
         stubSaveReturningId(expectedId);
 
-        UUID result = userService.register(USERNAME, EMAIL, FIRST_NAME, LAST_NAME);
+        UUID result = userService.register(USERNAME, EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         assertThat(result).isEqualTo(expectedId);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         User saved = captor.getValue();
-        assertThat(saved.getUsername()).isEqualTo("dariamaria");
-        assertThat(saved.getEmail()).isEqualTo("dariamaria@example.com");
-        assertThat(saved.getFirstName()).isEqualTo("Daria");
-        assertThat(saved.getLastName()).isEqualTo("Berciu");
+        assertThat(saved.getUsername()).isEqualTo("anamaria");
+        assertThat(saved.getEmail()).isEqualTo("anamaria@example.com");
+        assertThat(saved.getFirstName()).isEqualTo("Ana");
+        assertThat(saved.getLastName()).isEqualTo("Popescu");
+        assertThat(saved.getPassword()).isEqualTo(ENCODED_PASSWORD);
     }
 
     @Nested
@@ -76,9 +86,9 @@ class UserServiceTest {
 
         @ParameterizedTest
         @NullSource
-        @ValueSource(strings = {"da", "dariamariaberciuberciu", "DariaMaria", "daria_maria", "daria maria", ""})
+        @ValueSource(strings = {"da", "anamariapopescupopescu", "AnaMaria", "ana_maria", "ana maria", ""})
         void register_shouldThrowInvalidUserData_whenUsernameIsWrong(String username) {
-            assertThatThrownBy(() -> userService.register(username, EMAIL, FIRST_NAME, LAST_NAME))
+            assertThatThrownBy(() -> userService.register(username, EMAIL, PASSWORD, FIRST_NAME, LAST_NAME))
                     .isInstanceOf(InvalidUserDataException.class);
 
             verify(userRepository, never()).save(any());
@@ -88,7 +98,7 @@ class UserServiceTest {
         void register_shouldThrowUserAlreadyExists_whenUsernameIsTaken() {
             when(userRepository.existsByUsername(USERNAME)).thenReturn(true);
 
-            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, FIRST_NAME, LAST_NAME))
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, PASSWORD, FIRST_NAME, LAST_NAME))
                     .isInstanceOf(UserAlreadyExistsException.class)
                     .hasMessageContaining("Username");
 
@@ -101,24 +111,24 @@ class UserServiceTest {
 
         @ParameterizedTest
         @NullSource
-        @ValueSource(strings = {"not-an-email", "daria@", "@example.com", "daria@example", "daria..maria@example.com", ".daria@example.com", "daria@-example.com"})
+        @ValueSource(strings = {"not-an-email", "ana@", "@example.com", "ana@example", "ana..maria@example.com", ".ana@example.com", "ana@-example.com"})
         void register_shouldThrowInvalidUserData_whenEmailIsWrong(String email) {
             when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
 
-            assertThatThrownBy(() -> userService.register(USERNAME, email, FIRST_NAME, LAST_NAME))
+            assertThatThrownBy(() -> userService.register(USERNAME, email, PASSWORD, FIRST_NAME, LAST_NAME))
                     .isInstanceOf(InvalidUserDataException.class);
 
             verify(userRepository, never()).save(any());
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"daria@example.com", "daria.maria@example.com", "daria+filtru@example.com", "daria@sub.example.co.uk", "daria@example.agency", "daria.maria@stud.ubbcluj.ro"})
+        @ValueSource(strings = {"ana@example.com", "ana.maria@example.com", "ana+filtru@example.com", "ana@sub.example.co.uk", "ana@example.agency", "ana.maria@stud.ubbcluj.ro"})
         void register_shouldAcceptValidEmailFormats(String email) {
             when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
             when(userRepository.existsByEmail(email)).thenReturn(false);
             stubSaveReturningId(UUID.randomUUID());
 
-            assertThat(userService.register(USERNAME, email, FIRST_NAME, LAST_NAME)).isNotNull();
+            assertThat(userService.register(USERNAME, email, PASSWORD, FIRST_NAME, LAST_NAME)).isNotNull();
         }
 
         @Test
@@ -126,9 +136,44 @@ class UserServiceTest {
             when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
             when(userRepository.existsByEmail(EMAIL)).thenReturn(true);
 
-            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, FIRST_NAME, LAST_NAME))
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, PASSWORD, FIRST_NAME, LAST_NAME))
                     .isInstanceOf(UserAlreadyExistsException.class)
                     .hasMessageContaining("Email");
+        }
+    }
+
+    @Nested
+    class PasswordValidation {
+
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "short12"})
+        void register_shouldThrowInvalidUserData_whenPasswordIsMissingOrTooShort(String password) {
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, password, FIRST_NAME, LAST_NAME))
+                    .isInstanceOf(InvalidUserDataException.class)
+                    .hasMessage("Password must be between 8 and 72 characters long");
+
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        void register_shouldThrowInvalidUserData_whenPasswordIsTooLong() {
+            String tooLong = "a".repeat(73);
+
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, tooLong, FIRST_NAME, LAST_NAME))
+                    .isInstanceOf(InvalidUserDataException.class)
+                    .hasMessage("Password must be between 8 and 72 characters long");
+
+            verify(userRepository, never()).save(any());
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {8, 72})
+        void register_shouldAcceptPasswordAtLengthLimits(int length) {
+            stubSaveReturningId(UUID.randomUUID());
+
+            assertThat(userService.register(USERNAME, EMAIL, "a".repeat(length), FIRST_NAME, LAST_NAME))
+                    .isNotNull();
         }
     }
 
@@ -142,7 +187,7 @@ class UserServiceTest {
             when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
             when(userRepository.existsByEmail(EMAIL)).thenReturn(false);
 
-            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, firstName, LAST_NAME))
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, PASSWORD, firstName, LAST_NAME))
                     .isInstanceOf(InvalidUserDataException.class)
                     .hasMessageContaining("First name");
         }
@@ -154,7 +199,7 @@ class UserServiceTest {
             when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
             when(userRepository.existsByEmail(EMAIL)).thenReturn(false);
 
-            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, FIRST_NAME, lastName))
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, PASSWORD, FIRST_NAME, lastName))
                     .isInstanceOf(InvalidUserDataException.class)
                     .hasMessageContaining("Last name");
         }
@@ -166,7 +211,7 @@ class UserServiceTest {
 
             String tooLong = "a".repeat(51);
 
-            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, tooLong, LAST_NAME))
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, PASSWORD, tooLong, LAST_NAME))
                     .isInstanceOf(InvalidUserDataException.class);
         }
 
@@ -176,7 +221,7 @@ class UserServiceTest {
             when(userRepository.existsByEmail(EMAIL)).thenReturn(false);
             stubSaveReturningId(UUID.randomUUID());
 
-            assertThat(userService.register(USERNAME, EMAIL, "Daria-Maria", "Berciu")).isNotNull();
+            assertThat(userService.register(USERNAME, EMAIL, PASSWORD, "Ana-Maria", "Popescu")).isNotNull();
         }
     }
 

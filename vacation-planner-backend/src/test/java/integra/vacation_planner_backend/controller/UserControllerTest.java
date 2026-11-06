@@ -1,6 +1,5 @@
 package integra.vacation_planner_backend.controller;
 
-import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.exception.InvalidUserDataException;
 import integra.vacation_planner_backend.exception.UserAlreadyExistsException;
 import integra.vacation_planner_backend.service.UserService;
@@ -26,13 +25,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class UserControllerTest {
 
-    private static final String USERNAME = "dariamaria";
+    private static final String USERNAME = "anamaria";
 
-    private static final String EMAIL = "daria@example.com";
+    private static final String EMAIL = "anamaria@example.com";
 
-    private static final String FIRST_NAME = "Daria";
+    private static final String PASSWORD = "parola123";
 
-    private static final String LAST_NAME = "Maria";
+    private static final String FIRST_NAME = "Ana";
+
+    private static final String LAST_NAME = "Popescu";
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,7 +44,7 @@ class UserControllerTest {
     @Test
     void register_validRequest_returns201AndId() throws Exception {
         UUID userId = UUID.randomUUID();
-        when(userService.register(USERNAME, EMAIL, FIRST_NAME, LAST_NAME)).thenReturn(userId);
+        when(userService.register(USERNAME, EMAIL, PASSWORD, FIRST_NAME, LAST_NAME)).thenReturn(userId);
 
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -54,7 +55,7 @@ class UserControllerTest {
 
     @Test
     void register_existingUser_returns409() throws Exception {
-        when(userService.register(any(), any(), any(), any()))
+        when(userService.register(any(), any(), any(), any(), any()))
                 .thenThrow(new UserAlreadyExistsException("Username already exists"));
 
         mockMvc.perform(post("/register")
@@ -65,7 +66,7 @@ class UserControllerTest {
 
     @Test
     void register_invalidData_returns400() throws Exception {
-        when(userService.register(any(), any(), any(), any()))
+        when(userService.register(any(), any(), any(), any(), any()))
                 .thenThrow(new InvalidUserDataException("Invalid email format"));
 
         mockMvc.perform(post("/register")
@@ -87,10 +88,11 @@ class UserControllerTest {
     private String validRequestJson() {
         return """
                 {
-                  "username": "dariamaria",
-                  "email": "daria@example.com",
-                  "firstName": "Daria",
-                  "lastName": "Maria"
+                  "username": "anamaria",
+                  "email": "anamaria@example.com",
+                  "password": "parola123",
+                  "firstName": "Ana",
+                  "lastName": "Popescu"
                 }
                 """;
     }
