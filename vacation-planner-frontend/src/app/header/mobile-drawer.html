@@ -1,13 +1,13 @@
 <p-drawer [(visible)]="visible">
   <div>
     <nav>
-      <a routerLink="/trips" class="hover:underline" routerLinkActive="text-lime-700">My trips</a><br>
-      <a routerLink="/flights" class="hover:underline" routerLinkActive="text-lime-700">Flights</a><br>
-      <a routerLink="/accommodations" class="hover:underline" routerLinkActive="text-lime-700">Accommodations</a><br>
-      <a routerLink="/restaurants" class="hover:underline" routerLinkActive="text-lime-700">Restaurants</a>
+      <a routerLink="/trips" class="hover:underline" routerLinkActive="text-primary">My trips</a><br>
+      <a routerLink="/flights" class="hover:underline" routerLinkActive="text-primary">Flights</a><br>
+      <a routerLink="/accommodations" class="hover:underline" routerLinkActive="text-primary">Accommodations</a><br>
+      <a routerLink="/restaurants" class="hover:underline" routerLinkActive="text-primary">Restaurants</a>
     </nav>
   </div>
-  <div>
+  <div class="fixed bottom-0 p-2">
     <user-menu></user-menu>
   </div>
 </p-drawer>
