@@ -7,16 +7,28 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { AccommodationResponse } from '../../models/accommodation-response';
+import { PageResponseAccommodationResponse } from '../../models/page-response-accommodation-response';
 
 export interface FindByCity$Params {
   city: string;
+
+/**
+ * Page number, starting at 0
+ */
+  page?: number;
+
+/**
+ * Number of items per page
+ */
+  size?: 5 | 10 | 20 | 50 | 100;
 }
 
-export function findByCity(http: HttpClient, rootUrl: string, params: FindByCity$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<AccommodationResponse>>> {
+export function findByCity(http: HttpClient, rootUrl: string, params: FindByCity$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseAccommodationResponse>> {
   const rb = new RequestBuilder(rootUrl, findByCity.PATH, 'get');
   if (params) {
     rb.query('city', params.city, {});
+    rb.query('page', params.page, {});
+    rb.query('size', params.size, {});
   }
 
   return http.request(
@@ -24,7 +36,7 @@ export function findByCity(http: HttpClient, rootUrl: string, params: FindByCity
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Array<AccommodationResponse>>;
+      return r as StrictHttpResponse<PageResponseAccommodationResponse>;
     })
   );
 }

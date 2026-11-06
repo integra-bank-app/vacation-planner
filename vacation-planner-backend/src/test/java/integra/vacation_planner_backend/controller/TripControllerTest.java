@@ -145,31 +145,31 @@ class TripControllerTest {
 
         String flightsJson = getFlights(tripId, user)
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].flightNumber").value(outbound.getFlightNumber()))
-            .andExpect(jsonPath("$[0].departureAirport").value("CLJ"))
-            .andExpect(jsonPath("$[0].arrivalAirport").value("CDG"))
-            .andExpect(jsonPath("$[0].price").value(150.00))
-            .andExpect(jsonPath("$[1].flightNumber").value(inbound.getFlightNumber()))
+            .andExpect(jsonPath("$.content.length()").value(2))
+            .andExpect(jsonPath("$.content[0].flightNumber").value(outbound.getFlightNumber()))
+            .andExpect(jsonPath("$.content[0].departureAirport").value("CLJ"))
+            .andExpect(jsonPath("$.content[0].arrivalAirport").value("CDG"))
+            .andExpect(jsonPath("$.content[0].price").value(150.00))
+            .andExpect(jsonPath("$.content[1].flightNumber").value(inbound.getFlightNumber()))
             .andReturn().getResponse().getContentAsString();
-        assertThat(instantAt(flightsJson, "$[0].departureTime")).isEqualTo(OUT_DEP);
-        assertThat(instantAt(flightsJson, "$[1].arrivalTime")).isEqualTo(IN_ARR);
+        assertThat(instantAt(flightsJson, "$.content[0].departureTime")).isEqualTo(OUT_DEP);
+        assertThat(instantAt(flightsJson, "$.content[1].arrivalTime")).isEqualTo(IN_ARR);
 
         searchTrips(user, "2027-06-01", "2027-06-30")
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value(tripId.toString()))
-            .andExpect(jsonPath("$[0].destination").value("Paris"))
-            .andExpect(jsonPath("$[0].startDate").value("2027-06-10"))
-            .andExpect(jsonPath("$[0].endDate").value("2027-06-15"));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(tripId.toString()))
+            .andExpect(jsonPath("$.content[0].destination").value("Paris"))
+            .andExpect(jsonPath("$.content[0].startDate").value("2027-06-10"))
+            .andExpect(jsonPath("$.content[0].endDate").value("2027-06-15"));
 
         putTrip(tripId, tripDto(user, null, null, LocalDate.of(2027, 6, 20)))
             .andExpect(status().isOk());
 
         removeFlight(tripId, outbound.getFlightNumber(), user).andExpect(status().isOk());
         getFlights(tripId, user)
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].flightNumber").value(inbound.getFlightNumber()));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].flightNumber").value(inbound.getFlightNumber()));
         assertThat(flightRepository.findByFlightNumber(outbound.getFlightNumber())).isPresent();
 
         deleteTrip(tripId, user).andExpect(status().isOk());
@@ -198,7 +198,7 @@ class TripControllerTest {
         // the owner is checked through the API (Trip.user is lazy, so not read from the entity)
         searchTrips(user, "2027-06-01", "2027-06-30")
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].username").value(user));
+            .andExpect(jsonPath("$.content[0].username").value(user));
     }
 
     @Test
@@ -243,9 +243,9 @@ class TripControllerTest {
 
         searchTrips(user, "2027-06-01", "2027-07-31")
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[?(@.destination == 'Paris')]").exists())
-            .andExpect(jsonPath("$[?(@.destination == 'Rome')]").exists());
+            .andExpect(jsonPath("$.content.length()").value(2))
+            .andExpect(jsonPath("$.content[?(@.destination == 'Paris')]").exists())
+            .andExpect(jsonPath("$.content[?(@.destination == 'Rome')]").exists());
     }
 
     @Test
@@ -254,8 +254,8 @@ class TripControllerTest {
 
         searchTrips(user, "2027-06-10", "2027-06-15")
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].destination").value("Paris"));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].destination").value("Paris"));
     }
 
     @Test
@@ -264,7 +264,7 @@ class TripControllerTest {
 
         searchTrips(user, "2027-06-12", "2027-06-30")
             .andExpect(status().isOk())
-            .andExpect(content().json("[]"));
+            .andExpect(jsonPath("$.content").isEmpty());
     }
 
     @Test
@@ -273,7 +273,7 @@ class TripControllerTest {
 
         searchTrips(user, "2027-06-01", "2027-06-12")
             .andExpect(status().isOk())
-            .andExpect(content().json("[]"));
+            .andExpect(jsonPath("$.content").isEmpty());
     }
 
     @Test
@@ -285,8 +285,8 @@ class TripControllerTest {
 
         searchTrips(user, "2027-06-01", "2027-06-30")
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value(tripId.toString()))
-            .andExpect(jsonPath("$[0].flights").doesNotExist());
+            .andExpect(jsonPath("$.content[0].id").value(tripId.toString()))
+            .andExpect(jsonPath("$.content[0].flights").doesNotExist());
     }
 
     @Test
@@ -611,7 +611,7 @@ class TripControllerTest {
 
         getFlights(tripId, user)
             .andExpect(status().isOk())
-            .andExpect(content().json("[]"));
+            .andExpect(jsonPath("$.content").isEmpty());
     }
 
     @Test
@@ -747,22 +747,22 @@ class TripControllerTest {
 
         getAccommodations(tripId, owner)
             .andExpect(status().isOk())
-            .andExpect(content().json("[]"));
+            .andExpect(jsonPath("$.content").isEmpty());
 
         addAccommodation(tripId, owner, hotel.getId()).andExpect(status().isOk());
 
         getAccommodations(tripId, owner)
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value(hotel.getId().toString()))
-            .andExpect(jsonPath("$[0].name").value("Hotel Central"))
-            .andExpect(jsonPath("$[0].address").value("Str. Memorandumului 10"))
-            .andExpect(jsonPath("$[0].city").value("Cluj"))
-            .andExpect(jsonPath("$[0].pricePerNight").value(250));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(hotel.getId().toString()))
+            .andExpect(jsonPath("$.content[0].name").value("Hotel Central"))
+            .andExpect(jsonPath("$.content[0].address").value("Str. Memorandumului 10"))
+            .andExpect(jsonPath("$.content[0].city").value("Cluj"))
+            .andExpect(jsonPath("$.content[0].pricePerNight").value(250));
 
         removeAccommodation(tripId, hotel.getId(), owner).andExpect(status().isOk());
 
-        getAccommodations(tripId, owner).andExpect(content().json("[]"));
+        getAccommodations(tripId, owner).andExpect(jsonPath("$.content").isEmpty());
         // the accommodation itself is kept
         assertThat(accommodationRepository.existsById(hotel.getId())).isTrue();
     }
@@ -776,7 +776,7 @@ class TripControllerTest {
 
         addAccommodation(tripId, owner, hotel.getId()).andExpect(status().isConflict());
 
-        getAccommodations(tripId, owner).andExpect(jsonPath("$.length()").value(1));
+        getAccommodations(tripId, owner).andExpect(jsonPath("$.content.length()").value(1));
     }
 
     @Test
@@ -799,7 +799,7 @@ class TripControllerTest {
         addAccommodation(tripId, user("mallory"), hotel.getId())
             .andExpect(status().isForbidden());
 
-        getAccommodations(tripId, owner).andExpect(content().json("[]"));
+        getAccommodations(tripId, owner).andExpect(jsonPath("$.content").isEmpty());
     }
 
     @Test
@@ -840,7 +840,7 @@ class TripControllerTest {
         removeAccommodation(tripId, hotel.getId(), user("mallory"))
             .andExpect(status().isForbidden());
 
-        getAccommodations(tripId, owner).andExpect(jsonPath("$.length()").value(1));
+        getAccommodations(tripId, owner).andExpect(jsonPath("$.content.length()").value(1));
     }
 
     @Test

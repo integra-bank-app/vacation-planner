@@ -1,33 +1,36 @@
 package integra.vacation_planner_backend.service;
 
-import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Accommodation;
 import integra.vacation_planner_backend.domain.Trip;
-import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
-import integra.vacation_planner_backend.exception.ConflictException;
-import integra.vacation_planner_backend.exception.NotFoundException;
-import integra.vacation_planner_backend.repository.FlightRepository;
-import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.ForbiddenException;
+import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
+import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
-import org.springframework.transaction.annotation.Transactional;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.pagination.Pagination;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import integra.vacation_planner_backend.domain.Flight;
+import integra.vacation_planner_backend.dto.FlightResponse;
+import integra.vacation_planner_backend.repository.FlightRepository;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
+import java.time.ZoneId;
+
 
 @Service
 public class TripService {
@@ -51,7 +54,7 @@ public class TripService {
         this.userRepository = userRepository;
         this.flightRepository = flightRepository;
     }
-
+    
     public UUID createTrip(TripDTO dto) {
         if (dto.getUsername() == null || dto.getUsername().isBlank()) {
             throw new IllegalArgumentException("username is required");
@@ -80,10 +83,12 @@ public class TripService {
         return tripRepository.save(trip).getId();
     }
 
-    public List<TripResponse> getTripsBetweenDates(
+    public PageResponse<TripResponse> getTripsBetweenDates(
         String username,
         LocalDate startDate,
-        LocalDate endDate
+        LocalDate endDate,
+        int page,
+        int size
     ) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("username is required");
@@ -93,49 +98,39 @@ public class TripService {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
+
         User user = findUser(username);
 
-        return tripRepository
+        Page<TripResponse> trips = tripRepository
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                user, startDate, endDate
+                user,
+                startDate,
+                endDate,
+                pageable
             )
-            .stream()
             .map(trip -> new TripResponse(
                 trip.getId(),
                 user.getUsername(),
                 trip.getDestination(),
                 trip.getStartDate(),
                 trip.getEndDate()
-            ))
-            .toList();
-    }
+            ));
 
-    @Transactional(readOnly = true)
-    public List<FlightResponse> getTripFlights(UUID tripId, String username) {
-        Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
-
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Username is required");
-        }
-
-        if (!trip.getUser().getUsername().equals(username)) {
-            throw new UnauthorizedTripAccessException(
-                "User is not authorized to view the flights for this trip"
-            );
-        }
-
-        return trip.getFlights().stream()
-            .sorted(Comparator.comparing(Flight::getDepartureTime))
-            .map(flight -> new FlightResponse(
-                flight.getFlightNumber(),
-                flight.getDepartureAirportCode(),
-                flight.getArrivalAirportCode(),
-                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
-                flight.getPrice()
-            ))
-            .toList();
+        return new PageResponse<>(
+            trips.getContent(),
+            trips.getNumber(),
+            trips.getSize(),
+            trips.getTotalElements(),
+            trips.getTotalPages()
+        );
     }
 
     @Transactional
@@ -192,9 +187,100 @@ public class TripService {
     }
 
     @Transactional
-    public void addFlightToTrip(UUID tripId, String username, String flightNumber) {
+    public void addAccommodationToTrip(UUID tripId, TripAccommodationRequest request) {
         Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() ->  new TripNotFoundException("Trip not found"));
+            .orElseThrow(() -> new NotFoundException("Trip not found"));
+
+        Accommodation accommodation = accommodationRepository
+            .findById(request.accommodationId())
+            .orElseThrow(() -> new NotFoundException("Accommodation not found"));
+
+        if (!trip.getUser().getUsername().equals(request.username())) {
+            throw new ForbiddenException("User is not the owner of this trip");
+        }
+
+        if (trip.getAccommodations().contains(accommodation)) {
+            throw new ConflictException("Accommodation already added to trip");
+        }
+
+        trip.getAccommodations().add(accommodation);
+        tripRepository.save(trip);
+    }
+
+    @Transactional
+    public PageResponse<TripAccommodationResponse> getTripAccommodations(
+        UUID tripId,
+        String username,
+        int page,
+        int size
+    ) {
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new NotFoundException("Trip not found"));
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new ForbiddenException("User is not the owner of this trip");
+        }
+
+        Page<TripAccommodationResponse> accommodations = accommodationRepository
+            .findByTrips_Id(tripId, pageable)
+            .map(accommodation -> new TripAccommodationResponse(
+                accommodation.getId(),
+                accommodation.getName(),
+                accommodation.getAddress(),
+                accommodation.getCity(),
+                accommodation.getPricePerNight()
+            ));
+
+        return new PageResponse<>(
+            accommodations.getContent(),
+            accommodations.getNumber(),
+            accommodations.getSize(),
+            accommodations.getTotalElements(),
+            accommodations.getTotalPages()
+        );
+    }
+
+    @Transactional
+    public void removeAccommodationFromTrip(
+        UUID tripId,
+        UUID accommodationId,
+        String username
+    ) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new NotFoundException("Trip not found"));
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new ForbiddenException("User is not the owner of this trip");
+        }
+
+        Accommodation accommodation = accommodationRepository.findById(accommodationId)
+            .orElseThrow(() -> new NotFoundException("Accommodation not found"));
+
+        if (!trip.getAccommodations().contains(accommodation)) {
+            throw new NotFoundException("Accommodation not found in trip");
+        }
+
+        trip.getAccommodations().remove(accommodation);
+        tripRepository.save(trip);
+    }
+
+    @Transactional
+    public void addFlightToTrip(
+        UUID tripId,
+        String username,
+        String flightNumber
+    ) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
 
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Username is required");
@@ -210,10 +296,8 @@ public class TripService {
             throw new IllegalArgumentException("flightNumber is required");
         }
 
-
         Flight flight = flightRepository.findByFlightNumberForUpdate(flightNumber)
             .orElseThrow(() -> new NotFoundException("Flight not found"));
-
 
         boolean alreadyAdded = trip.getFlights().stream()
             .anyMatch(existingFlight ->
@@ -231,6 +315,55 @@ public class TripService {
 
         trip.getFlights().add(flight);
         tripRepository.save(trip);
+    }
+
+    @Transactional
+    public PageResponse<FlightResponse> getTripFlights(
+        UUID tripId,
+        String username,
+        int page,
+        int size
+    ) {
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "User is not authorized to view the flights for this trip"
+            );
+        }
+
+        Page<FlightResponse> flights = flightRepository
+            .findFlightsByTripId(tripId, pageable)
+            .map(flight -> new FlightResponse(
+                flight.getFlightNumber(),
+                flight.getDepartureAirportCode(),
+                flight.getArrivalAirportCode(),
+                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
+                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+                flight.getPrice()
+            ));
+
+        return new PageResponse<>(
+            flights.getContent(),
+            flights.getNumber(),
+            flights.getSize(),
+            flights.getTotalElements(),
+            flights.getTotalPages()
+        );
     }
 
     @Transactional
@@ -267,76 +400,6 @@ public class TripService {
             throw new NotFoundException("Flight is not part of this trip");
         }
 
-        tripRepository.save(trip);
-    }
-
-    @Transactional
-    public void addAccommodationToTrip(UUID tripId, TripAccommodationRequest request) {
-        Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new NotFoundException("Trip not found"));
-
-        Accommodation accommodation = accommodationRepository
-            .findById(request.accommodationId())
-            .orElseThrow(() -> new NotFoundException("Accommodation not found"));
-
-        if (!trip.getUser().getUsername().equals(request.username())) {
-            throw new ForbiddenException("User is not the owner of this trip");
-        }
-
-        if (trip.getAccommodations().contains(accommodation)) {
-            throw new ConflictException("Accommodation already added to trip");
-        }
-
-        trip.getAccommodations().add(accommodation);
-        tripRepository.save(trip);
-    }
-
-    @Transactional
-    public List<TripAccommodationResponse> getTripAccommodations(
-        UUID tripId,
-        String username
-    ) {
-        Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new NotFoundException("Trip not found"));
-
-        if (!trip.getUser().getUsername().equals(username)) {
-            throw new ForbiddenException("User is not the owner of this trip");
-        }
-
-        return trip.getAccommodations()
-            .stream()
-            .sorted(Comparator.comparing(Accommodation::getPricePerNight))
-            .map(accommodation -> new TripAccommodationResponse(
-                accommodation.getId(),
-                accommodation.getName(),
-                accommodation.getAddress(),
-                accommodation.getCity(),
-                accommodation.getPricePerNight()
-            ))
-            .toList();
-    }
-
-    @Transactional
-    public void removeAccommodationFromTrip(
-        UUID tripId,
-        UUID accommodationId,
-        String username
-    ) {
-        Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new NotFoundException("Trip not found"));
-
-        if (!trip.getUser().getUsername().equals(username)) {
-            throw new ForbiddenException("User is not the owner of this trip");
-        }
-
-        Accommodation accommodation = accommodationRepository.findById(accommodationId)
-            .orElseThrow(() -> new NotFoundException("Accommodation not found"));
-
-        if (!trip.getAccommodations().contains(accommodation)) {
-            throw new NotFoundException("Accommodation not found in trip");
-        }
-
-        trip.getAccommodations().remove(accommodation);
         tripRepository.save(trip);
     }
 

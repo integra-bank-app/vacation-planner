@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { PageResponseTripResponse } from '../../models/page-response-trip-response';
 import { TripResponse } from '../../models/trip-response';
 
 export interface GetTrips$Params {
@@ -15,6 +16,7 @@ export interface GetTrips$Params {
   endDate: string;
 }
 
+export function getTrips(http: HttpClient, rootUrl: string, params: GetTrips$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseTripResponse>> {
 export function getTrips(http: HttpClient, rootUrl: string, params: GetTrips$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<TripResponse>>> {
   const rb = new RequestBuilder(rootUrl, getTrips.PATH, 'get');
   if (params) {
@@ -28,6 +30,7 @@ export function getTrips(http: HttpClient, rootUrl: string, params: GetTrips$Par
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
+      return r as StrictHttpResponse<PageResponseTripResponse>;
       return r as StrictHttpResponse<Array<TripResponse>>;
     })
   );

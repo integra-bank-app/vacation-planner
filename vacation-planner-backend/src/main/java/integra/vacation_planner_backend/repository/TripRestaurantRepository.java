@@ -2,11 +2,14 @@ package integra.vacation_planner_backend.repository;
 
 import integra.vacation_planner_backend.domain.TripRestaurant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+
 
 public interface TripRestaurantRepository
 extends JpaRepository<TripRestaurant, UUID>  {
@@ -18,5 +21,7 @@ extends JpaRepository<TripRestaurant, UUID>  {
         LocalDate visitDate,
         LocalTime visitTime
     );
+
+    Page<TripRestaurant> findByTrip_Id(UUID tripId, Pageable pageable);
 
 }
