@@ -1,15 +1,14 @@
 import {Component} from '@angular/core';
 import {Drawer} from 'primeng/drawer';
-import {RouterLink, RouterLinkActive} from '@angular/router';
 import {UserMenu} from './user-menu';
+import {MobileNavigation} from './mobile-navigation';
 
 @Component({
   selector: 'mobile-drawer',
   imports: [
     Drawer,
-    RouterLink,
-    RouterLinkActive,
-    UserMenu
+    UserMenu,
+    MobileNavigation
   ],
   templateUrl: './mobile-drawer.html',
 })
