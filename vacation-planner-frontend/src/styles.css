@@ -2,3 +2,7 @@
 
 @import 'tailwindcss';
 @import 'primeicons/primeicons.css';
+
+@theme {
+  --color-primary: #47e8c8;
+}
