@@ -8,6 +8,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
 
@@ -51,4 +57,43 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleResourceNotFound(
+        NotFoundException exception
+    ) {
+        return Map.of("error", exception.getMessage());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleConflict(
+        ConflictException exception
+    ) {
+        return Map.of("error", exception.getMessage());
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(
+        TypeMismatchException exception,
+        HttpHeaders headers,
+        HttpStatusCode status,
+        WebRequest request
+    ) {
+        if (exception instanceof MethodArgumentTypeMismatchException mismatch) {
+            String parameter = mismatch.getName();
+
+            if ("page".equals(parameter) || "size".equals(parameter)) {
+                return handleExceptionInternal(
+                    exception,
+                    Map.of("error", parameter + " must be a valid integer"),
+                    headers,
+                    HttpStatus.BAD_REQUEST,
+                    request
+                );
+            }
+        }
+
+        return super.handleTypeMismatch(exception, headers, status, request);
+    }
 }

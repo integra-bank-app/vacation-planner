@@ -5,6 +5,11 @@ import integra.vacation_planner_backend.domain.Restaurant;
 import integra.vacation_planner_backend.exception.RestaurantServiceException;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
 import integra.vacation_planner_backend.validator.RestaurantValidator;
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.pagination.Pagination;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +20,7 @@ import java.util.UUID;
 @Service
 @AllArgsConstructor
 public class RestaurantService {
+
     private RestaurantRepository restaurantRepository;
 
     public UUID createRestaurant(String name, String address, LocalTime openingHour, LocalTime closingHour) {
@@ -29,11 +35,41 @@ public class RestaurantService {
         return restaurantRepository.findAll();
     }
 
-    public List<RestaurantDTO> getRestaurantsByCity(String city) {
+    public PageResponse<RestaurantDTO> getRestaurantsByCity(
+        String city,
+        int page,
+        int size
+    ) {
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
         // search for restaurants whose address contains the given city
         String query = "%" + city + "%";
-        return restaurantRepository.getRestaurantsByAddressLike(query).stream().map(it -> new RestaurantDTO
-                (it.getId(), it.getName(), it.getAddress(), it.getOpeningHour(), it.getClosingHour(), 5.0)).toList();
+
+        Page<RestaurantDTO> restaurants = restaurantRepository
+            .getRestaurantsByAddressLike(query, pageable)
+            .map(it -> new RestaurantDTO(
+                it.getId(),
+                it.getName(),
+                it.getAddress(),
+                it.getOpeningHour(),
+                it.getClosingHour(),
+                5.0
+            ));
+
+        return new PageResponse<>(
+            restaurants.getContent(),
+            restaurants.getNumber(),
+            restaurants.getSize(),
+            restaurants.getTotalElements(),
+            restaurants.getTotalPages()
+        );
     }
 
     public void updateRestaurant(UUID id, String address, LocalTime openingHour, LocalTime closingHour) {

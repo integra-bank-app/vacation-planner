@@ -1,27 +1,38 @@
 package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.domain.Accommodation;
+import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.domain.Trip;
 import integra.vacation_planner_backend.domain.User;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
+import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
-import integra.vacation_planner_backend.dto.TripResponse;
 import integra.vacation_planner_backend.exception.ConflictException;
-import integra.vacation_planner_backend.exception.ForbiddenException;
 import integra.vacation_planner_backend.exception.NotFoundException;
+import integra.vacation_planner_backend.repository.FlightRepository;
+import integra.vacation_planner_backend.repository.TripRepository;
+import integra.vacation_planner_backend.dto.TripResponse;
+import integra.vacation_planner_backend.exception.ForbiddenException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
-import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import integra.vacation_planner_backend.dto.PageResponse;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,11 +45,15 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.anyString;
 
-class TripServiceTest {
+public class TripServiceTest {
 
     private TripRepository tripRepository;
+
+    private FlightRepository flightRepository;
 
     private AccommodationRepository accommodationRepository;
 
@@ -51,13 +66,15 @@ class TripServiceTest {
     @BeforeEach
     void setUp() {
         tripRepository = mock(TripRepository.class);
+        flightRepository = mock(FlightRepository.class);
         accommodationRepository = mock(AccommodationRepository.class);
         userRepository = mock(UserRepository.class);
 
         tripService = new TripService(
             tripRepository,
             accommodationRepository,
-            userRepository
+            userRepository,
+            flightRepository
         );
 
         bob = new User();
@@ -203,14 +220,25 @@ class TripServiceTest {
         LocalDate to = LocalDate.of(2026, 6, 30);
         Trip trip = ownedTrip();
 
+        PageRequest pageable = PageRequest.of(
+            1,
+            10,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
+
         when(userRepository.findByUsername("bob"))
             .thenReturn(Optional.of(bob));
         when(tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-            bob, from, to
-        )).thenReturn(List.of(trip));
+            bob, from, to, pageable
+        )).thenReturn(
+            new PageImpl<>(List.of(trip), pageable, 25)
+        );
 
-        List<TripResponse> result =
-            tripService.getTripsBetweenDates("bob", from, to);
+        PageResponse<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to, 1, 10);
 
         assertEquals(
             List.of(new TripResponse(
@@ -220,12 +248,16 @@ class TripServiceTest {
                 trip.getStartDate(),
                 trip.getEndDate()
             )),
-            result
+            result.content()
         );
+        assertEquals(1, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
 
         verify(tripRepository)
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                bob, from, to
+                bob, from, to, pageable
             );
     }
 
@@ -236,12 +268,15 @@ class TripServiceTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> tripService.getTripsBetweenDates("   ", from, to)
+            () -> tripService.getTripsBetweenDates("   ", from, to, 0, 10)
         );
 
         verify(tripRepository, never())
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                any(User.class), any(LocalDate.class), any(LocalDate.class)
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
@@ -252,12 +287,15 @@ class TripServiceTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> tripService.getTripsBetweenDates("bob", from, to)
+            () -> tripService.getTripsBetweenDates("bob", from, to, 0, 10)
         );
 
         verify(tripRepository, never())
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                any(User.class), any(LocalDate.class), any(LocalDate.class)
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
@@ -271,34 +309,110 @@ class TripServiceTest {
 
         assertThrows(
             UserNotFoundException.class,
-            () -> tripService.getTripsBetweenDates("unknown", from, to)
+            () -> tripService.getTripsBetweenDates("unknown", from, to, 0, 10)
         );
 
         verify(tripRepository, never())
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                any(User.class), any(LocalDate.class), any(LocalDate.class)
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
     @Test
-    void getTripsBetweenDates_shouldReturnEmptyListWhenNoTripsFound() {
+    void getTripsBetweenDates_shouldReturnEmptyPageWhenNoTripsFound() {
         LocalDate from = LocalDate.of(2026, 6, 1);
         LocalDate to = LocalDate.of(2026, 6, 30);
+
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
 
         when(userRepository.findByUsername("bob"))
             .thenReturn(Optional.of(bob));
         when(tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-            bob, from, to
-        )).thenReturn(List.of());
+            bob, from, to, pageable
+        )).thenReturn(
+            new PageImpl<Trip>(List.of(), pageable, 0)
+        );
 
-        List<TripResponse> result =
-            tripService.getTripsBetweenDates("bob", from, to);
+        PageResponse<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to, 0, 10);
 
-        assertTrue(result.isEmpty());
+        assertTrue(result.content().isEmpty());
+        assertEquals(0, result.page());
+        assertEquals(10, result.size());
+        assertEquals(0L, result.totalElements());
+        assertEquals(0, result.totalPages());
 
         verify(tripRepository)
             .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
-                bob, from, to
+                bob, from, to, pageable
+            );
+    }
+
+    @Test
+    void getTripsBetweenDates_pageBeyondEnd_keepsTotals() {
+        LocalDate from = LocalDate.of(2026, 6, 1);
+        LocalDate to = LocalDate.of(2026, 6, 30);
+
+        PageRequest pageable = PageRequest.of(
+            3,
+            10,
+            Sort.by(
+                Sort.Order.asc("startDate"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(userRepository.findByUsername("bob"))
+            .thenReturn(Optional.of(bob));
+        when(tripRepository.findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+            bob, from, to, pageable
+        )).thenReturn(
+            new PageImpl<Trip>(List.of(), pageable, 25)
+        );
+
+        PageResponse<TripResponse> result =
+            tripService.getTripsBetweenDates("bob", from, to, 3, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(3, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+    }
+
+    @Test
+    void getTripsBetweenDates_shouldRejectInvalidPagination() {
+        LocalDate from = LocalDate.of(2026, 6, 1);
+        LocalDate to = LocalDate.of(2026, 6, 30);
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripsBetweenDates("bob", from, to, -1, 10)
+        );
+
+        for (int size : List.of(-1, 0, 1, 7, 15, 101)) {
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> tripService.getTripsBetweenDates("bob", from, to, 0, size)
+            );
+        }
+
+        verify(tripRepository, never())
+            .findByUserAndStartDateGreaterThanEqualAndEndDateLessThanEqual(
+                any(User.class),
+                any(LocalDate.class),
+                any(LocalDate.class),
+                any(Pageable.class)
             );
     }
 
@@ -559,35 +673,46 @@ class TripServiceTest {
     }
 
     @Test
-    void getTripAccommodations_shouldReturnAccommodationsSortedByPrice() {
+    void getTripAccommodations_shouldUseDatabasePaginationAndNameSort() {
         Trip trip = storedTrip();
-        Accommodation expensive = accommodation("Expensive Hotel", 500);
-        Accommodation cheap = accommodation("Cheap Hotel", 200);
-        trip.getAccommodations().add(expensive);
-        trip.getAccommodations().add(cheap);
+        Accommodation accommodation = accommodation("Alpha Hotel", 500);
 
-        List<TripAccommodationResponse> result =
-            tripService.getTripAccommodations(trip.getId(), "bob");
+        PageRequest pageable = PageRequest.of(
+            1,
+            5,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(accommodationRepository.findByTrips_Id(trip.getId(), pageable))
+            .thenReturn(new PageImpl<>(
+                List.of(accommodation),
+                pageable,
+                6
+            ));
+
+        PageResponse<TripAccommodationResponse> result =
+            tripService.getTripAccommodations(trip.getId(), "bob", 1, 5);
 
         assertEquals(
-            List.of(
-                new TripAccommodationResponse(
-                    cheap.getId(),
-                    cheap.getName(),
-                    cheap.getAddress(),
-                    cheap.getCity(),
-                    cheap.getPricePerNight()
-                ),
-                new TripAccommodationResponse(
-                    expensive.getId(),
-                    expensive.getName(),
-                    expensive.getAddress(),
-                    expensive.getCity(),
-                    expensive.getPricePerNight()
-                )
-            ),
-            result
+            List.of(new TripAccommodationResponse(
+                accommodation.getId(),
+                accommodation.getName(),
+                accommodation.getAddress(),
+                accommodation.getCity(),
+                accommodation.getPricePerNight()
+            )),
+            result.content()
         );
+        assertEquals(1, result.page());
+        assertEquals(5, result.size());
+        assertEquals(6L, result.totalElements());
+        assertEquals(2, result.totalPages());
+
+        verify(accommodationRepository)
+            .findByTrips_Id(trip.getId(), pageable);
     }
 
     @Test
@@ -596,8 +721,11 @@ class TripServiceTest {
 
         assertThrows(
             ForbiddenException.class,
-            () -> tripService.getTripAccommodations(trip.getId(), "alice")
+            () -> tripService.getTripAccommodations(trip.getId(), "alice", 0, 10)
         );
+
+        verify(accommodationRepository, never())
+            .findByTrips_Id(any(UUID.class), any(Pageable.class));
     }
 
     @Test
@@ -609,8 +737,64 @@ class TripServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> tripService.getTripAccommodations(tripId, "bob")
+            () -> tripService.getTripAccommodations(tripId, "bob", 0, 10)
         );
+
+        verify(accommodationRepository, never())
+            .findByTrips_Id(any(UUID.class), any(Pageable.class));
+    }
+
+    @Test
+    void getTripAccommodations_pageBeyondEnd_keepsTotals() {
+        Trip trip = storedTrip();
+
+        PageRequest pageable = PageRequest.of(
+            3,
+            10,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(accommodationRepository.findByTrips_Id(trip.getId(), pageable))
+            .thenReturn(new PageImpl<Accommodation>(
+                List.of(),
+                pageable,
+                25
+            ));
+
+        PageResponse<TripAccommodationResponse> result =
+            tripService.getTripAccommodations(trip.getId(), "bob", 3, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(3, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+
+        verify(accommodationRepository)
+            .findByTrips_Id(trip.getId(), pageable);
+    }
+
+    @Test
+    void getTripAccommodations_shouldRejectInvalidPagination() {
+        UUID tripId = UUID.randomUUID();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripAccommodations(tripId, "bob", -1, 10)
+        );
+
+        for (int size : List.of(-1, 0, 1, 7, 15, 101)) {
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> tripService.getTripAccommodations(tripId, "bob", 0, size)
+            );
+        }
+
+        verify(accommodationRepository, never())
+            .findByTrips_Id(any(UUID.class), any(Pageable.class));
     }
 
     @Test
@@ -695,6 +879,374 @@ class TripServiceTest {
         verify(tripRepository, never()).save(any(Trip.class));
     }
 
+    @Test
+    void addFlightToTrip_shouldAddFlightWhenFlightHasSeats() {
+        Trip trip = storedTripWithFlights();
+        Flight flight = flight("RO101", 3);
+
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.of(flight));
+        when(tripRepository.countTripsUsingFlight(flight.getId()))
+            .thenReturn(1L);
+
+        tripService.addFlightToTrip(trip.getId(), "bob", "RO101");
+
+        assertTrue(trip.getFlights().contains(flight));
+        verify(tripRepository).save(trip);
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectDuplicateFlight() {
+        Flight flight = flight("RO101", 3);
+        Trip trip = storedTripWithFlights(flight);
+
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.of(flight));
+
+        assertThrows(
+            ConflictException.class,
+            () -> tripService.addFlightToTrip(trip.getId(), "bob", "RO101")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectFullFlight() {
+        Trip trip = storedTripWithFlights();
+        Flight flight = flight("RO101", 2);
+
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.of(flight));
+        when(tripRepository.countTripsUsingFlight(flight.getId()))
+            .thenReturn(2L);
+
+        assertThrows(
+            ConflictException.class,
+            () -> tripService.addFlightToTrip(trip.getId(), "bob", "RO101")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectWrongUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            UnauthorizedTripAccessException.class,
+            () -> tripService.addFlightToTrip(trip.getId(), "alice", "RO101")
+        );
+
+        verify(flightRepository, never())
+            .findByFlightNumberForUpdate(anyString());
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            TripNotFoundException.class,
+            () -> tripService.addFlightToTrip(tripId, "bob", "RO101")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectMissingFlight() {
+        Trip trip = storedTripWithFlights();
+
+        when(flightRepository.findByFlightNumberForUpdate("RO101"))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.addFlightToTrip(trip.getId(), "bob", "RO101")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectBlankUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.addFlightToTrip(trip.getId(), " ", "RO101")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void addFlightToTrip_shouldRejectBlankFlightNumber() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.addFlightToTrip(trip.getId(), "bob", " ")
+        );
+
+        verify(flightRepository, never())
+            .findByFlightNumberForUpdate(anyString());
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void getTripFlights_shouldReturnFlightsSortedByDepartureTime() {
+        Flight later = flight(
+            "RO202", "LHR", "2026-11-10T14:00:00Z", "2026-11-10T16:00:00Z"
+        );
+        Flight earlier = flight(
+            "RO101", "CDG", "2026-11-10T09:00:00Z", "2026-11-10T11:00:00Z"
+        );
+        Trip trip = storedTripWithFlights(later, earlier);
+
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(flightRepository.findFlightsByTripId(trip.getId(), pageable))
+            .thenReturn(new PageImpl<>(
+                List.of(earlier, later), pageable, 2
+            ));
+
+        PageResponse<FlightResponse> result =
+            tripService.getTripFlights(trip.getId(), "bob", 0, 10);
+
+        verify(flightRepository).findFlightsByTripId(trip.getId(), pageable);
+
+        assertEquals(2, result.content().size());
+        assertEquals(2L, result.totalElements());
+        assertEquals(1, result.totalPages());
+        assertEquals(0, result.page());
+        assertEquals(10, result.size());
+
+        assertEquals("RO101", result.content().get(0).flightNumber());
+        assertEquals("RO202", result.content().get(1).flightNumber());
+        assertEquals("OTP", result.content().get(0).departureAirport());
+        assertEquals("CDG", result.content().get(0).arrivalAirport());
+        assertEquals(
+            earlier.getDepartureTime().atZone(ZoneId.systemDefault()),
+            result.content().get(0).departureTime()
+        );
+        assertEquals(
+            earlier.getArrivalTime().atZone(ZoneId.systemDefault()),
+            result.content().get(0).arrivalTime()
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldReturnEmptyListWhenTripHasNoFlights() {
+        Trip trip = storedTripWithFlights();
+
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(flightRepository.findFlightsByTripId(trip.getId(), pageable))
+            .thenReturn(new PageImpl<Flight>(List.of(), pageable, 0));
+
+        PageResponse<FlightResponse> result =
+            tripService.getTripFlights(trip.getId(), "bob", 0, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(0L, result.totalElements());
+        assertEquals(0, result.totalPages());
+
+        verify(flightRepository).findFlightsByTripId(trip.getId(), pageable);
+    }
+
+    @Test
+    void getTripFlights_shouldRejectWrongUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            UnauthorizedTripAccessException.class,
+            () -> tripService.getTripFlights(trip.getId(), "alice", 0, 10)
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            TripNotFoundException.class,
+            () -> tripService.getTripFlights(tripId, "bob", 0, 10)
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldRejectBlankUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripFlights(trip.getId(), " ", 0, 10)
+        );
+    }
+
+    @Test
+    void getTripFlights_shouldRejectNullUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.getTripFlights(trip.getId(), null, 0, 10)
+        );
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRemoveFlightAndKeepOtherFlights() {
+        Flight flightToRemove = flight("RO101", 3);
+        Flight flightToKeep = flight("RO202", 3);
+        Trip trip = storedTripWithFlights(flightToRemove, flightToKeep);
+
+        when(flightRepository.findByFlightNumber("RO101"))
+            .thenReturn(Optional.of(flightToRemove));
+
+        tripService.deleteFlightFromTrip(trip.getId(), "RO101", "bob");
+
+        assertEquals(1, trip.getFlights().size());
+        assertTrue(trip.getFlights().contains(flightToKeep));
+        verify(tripRepository).save(trip);
+        verify(flightRepository, never()).delete(any(Flight.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectMissingTrip() {
+        UUID tripId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            TripNotFoundException.class,
+            () -> tripService.deleteFlightFromTrip(tripId, "RO101", "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectNullUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), "RO101", null)
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectBlankUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), "RO101", "   ")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectWrongUsername() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            UnauthorizedTripAccessException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), "RO101", "alice")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectNullFlightNumber() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), null, "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectBlankFlightNumber() {
+        Trip trip = storedTripWithFlights();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), "   ", "bob")
+        );
+
+        verifyNoInteractions(flightRepository);
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectMissingFlight() {
+        Trip trip = storedTripWithFlights();
+
+        when(flightRepository.findByFlightNumber("RO101"))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), "RO101", "bob")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
+    @Test
+    void deleteFlightFromTrip_shouldRejectFlightNotAssociatedWithTrip() {
+        Trip trip = storedTripWithFlights();
+        Flight flight = flight("RO101", 3);
+
+        when(flightRepository.findByFlightNumber("RO101"))
+            .thenReturn(Optional.of(flight));
+
+        assertThrows(
+            NotFoundException.class,
+            () -> tripService.deleteFlightFromTrip(trip.getId(), "RO101", "bob")
+        );
+
+        verify(tripRepository, never()).save(any(Trip.class));
+    }
+
     private TripDTO validTripRequest() {
         TripDTO dto = new TripDTO();
         dto.setUsername("bob");
@@ -736,5 +1288,33 @@ class TripServiceTest {
         when(accommodationRepository.findById(accommodation.getId()))
             .thenReturn(Optional.of(accommodation));
         return accommodation;
+    }
+
+    private Trip storedTripWithFlights(Flight... flights) {
+        Trip trip = storedTrip();
+        trip.setFlights(new HashSet<>(List.of(flights)));
+        return trip;
+    }
+
+    private Flight flight(String flightNumber, int numberOfSeats) {
+        Flight flight = new Flight();
+        flight.setId(UUID.randomUUID());
+        flight.setFlightNumber(flightNumber);
+        flight.setNumberOfSeats(numberOfSeats);
+        return flight;
+    }
+
+    private Flight flight(
+        String flightNumber,
+        String arrivalAirportCode,
+        String departureTime,
+        String arrivalTime
+    ) {
+        Flight flight = flight(flightNumber, 3);
+        flight.setDepartureAirportCode("OTP");
+        flight.setArrivalAirportCode(arrivalAirportCode);
+        flight.setDepartureTime(Instant.parse(departureTime));
+        flight.setArrivalTime(Instant.parse(arrivalTime));
+        return flight;
     }
 }
