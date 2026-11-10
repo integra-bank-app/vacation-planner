@@ -1,0 +1,11 @@
+<p-drawer [(visible)]="visible">
+  <div>
+    <mobile-navigation/>
+  </div>
+  <div class="fixed bottom-0 p-2">
+    <user-menu></user-menu>
+  </div>
+</p-drawer>
+<button type="button" (click)="visible = true">
+  Menu
+</button>
