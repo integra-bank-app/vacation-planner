@@ -13,6 +13,10 @@ import integra.vacation_planner_backend.exception.UnauthorizedTripAccessExceptio
 import integra.vacation_planner_backend.repository.RestaurantRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.TripRestaurantRepository;
+import integra.vacation_planner_backend.dto.PageResponse;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -312,20 +316,40 @@ class TripRestaurantServiceTest {
             visitTime
         );
 
+        PageRequest pageable = PageRequest.of(
+            0,
+            10,
+            Sort.by(
+                Sort.Order.asc("restaurant.name"),
+                Sort.Order.asc("id")
+            )
+        );
+
         when(tripRepository.findById(tripId))
             .thenReturn(Optional.of(trip));
-        when(tripRestaurantRepository
-            .findByTrip_IdOrderByVisitDateAscVisitTimeAsc(tripId))
-            .thenReturn(List.of(visit));
 
-        List<TripRestaurantResponseDTO> result =
-            tripRestaurantService.getRestaurantsForTrip(tripId, "alice");
+        when(tripRestaurantRepository.findByTrip_Id(tripId, pageable))
+            .thenReturn(new PageImpl<>(List.of(visit), pageable, 1));
 
-        assertEquals(1, result.size());
-        assertEquals(restaurant.getName(), result.get(0).restaurantName());
-        assertEquals(restaurantId, result.get(0).restaurantId());
-        assertEquals(visitDate, result.get(0).visitDate());
-        assertEquals(visitTime, result.get(0).visitTime());
+        PageResponse<TripRestaurantResponseDTO> result =
+            tripRestaurantService.getRestaurantsForTrip(
+                tripId, "alice", 0, 10
+            );
+
+        assertEquals(1, result.content().size());
+        assertEquals(1L, result.totalElements());
+        assertEquals(1, result.totalPages());
+        assertEquals(0, result.page());
+        assertEquals(10, result.size());
+        assertEquals(
+            restaurant.getName(),
+            result.content().get(0).restaurantName()
+        );
+        assertEquals(restaurantId, result.content().get(0).restaurantId());
+        assertEquals(visitDate, result.content().get(0).visitDate());
+        assertEquals(visitTime, result.content().get(0).visitTime());
+
+        verify(tripRestaurantRepository).findByTrip_Id(tripId, pageable);
     }
 
     @Test
@@ -338,13 +362,11 @@ class TripRestaurantServiceTest {
         assertThrows(
             UnauthorizedTripAccessException.class,
             () -> tripRestaurantService.getRestaurantsForTrip(
-                tripId,
-                "alice"
+                tripId, "alice", 0, 10
             )
         );
 
-        verify(tripRestaurantRepository, never())
-            .findByTrip_IdOrderByVisitDateAscVisitTimeAsc(tripId);
+        org.mockito.Mockito.verifyNoInteractions(tripRestaurantRepository);
     }
 
     @Test

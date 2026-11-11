@@ -11,6 +11,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import integra.vacation_planner_backend.dto.PageResponse;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,6 +27,8 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class AccommodationServiceTest {
@@ -204,28 +210,139 @@ class AccommodationServiceTest {
     @Test
     void findByCity_shouldReturnAccommodationResponses() {
         Accommodation accommodation = new Accommodation(
+            accommodationId,
+            "Hotel Central",
+            BigDecimal.valueOf(250),
+            "Str. Memorandumului 10",
+            "Cluj"
+        );
+
+        PageRequest pageable = PageRequest.of(
+            1,
+            10,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(repository.findByCityIgnoreCase("Cluj", pageable))
+            .thenReturn(new PageImpl<>(
+                List.of(accommodation),
+                pageable,
+                25
+            ));
+
+        PageResponse<AccommodationResponse> result =
+            service.findByCity("Cluj", 1, 10);
+
+        assertEquals(
+            List.of(new AccommodationResponse(
                 accommodationId,
                 "Hotel Central",
-                BigDecimal.valueOf(250),
-                "Str. Memorandumului 10",
-                "Cluj"
+                BigDecimal.valueOf(250)
+            )),
+            result.content()
+        );
+        assertEquals(1, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+
+        verify(repository).findByCityIgnoreCase("Cluj", pageable);
+    }
+
+    @Test
+    void findByCity_pageBeyondEnd_returnsEmptyContentAndKeepsTotals() {
+        PageRequest pageable = PageRequest.of(
+            3,
+            10,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
         );
 
-        when(repository.findByCityIgnoreCaseOrderByPricePerNightAsc("Cluj"))
-                .thenReturn(List.of(accommodation));
+        when(repository.findByCityIgnoreCase("Cluj", pageable))
+            .thenReturn(new PageImpl<Accommodation>(
+                List.of(),
+                pageable,
+                25
+            ));
 
-        List<AccommodationResponse> result =
-                service.findByCity("Cluj");
+        PageResponse<AccommodationResponse> result =
+            service.findByCity("Cluj", 3, 10);
 
-        assertEquals(1, result.size());
-        assertEquals(accommodationId, result.getFirst().id());
-        assertEquals("Hotel Central", result.getFirst().name());
+        assertTrue(result.content().isEmpty());
+        assertEquals(3, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+
+        verify(repository).findByCityIgnoreCase("Cluj", pageable);
+    }
+
+    @Test
+    void findByCity_negativePage_throwsIllegalArgumentException() {
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.findByCity("Cluj", -1, 10)
+        );
+
         assertEquals(
-                BigDecimal.valueOf(250),
-                result.getFirst().pricePerNight()
+            "page must be greater than or equal to 0",
+            exception.getMessage()
         );
 
-        verify(repository)
-                .findByCityIgnoreCaseOrderByPricePerNightAsc("Cluj");
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void findByCity_invalidSizes_throwIllegalArgumentException() {
+        for (int size : List.of(-1, 0, 1, 7, 15, 101)) {
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.findByCity("Cluj", 0, size)
+            );
+
+            assertEquals(
+                "size must be one of: 5, 10, 20, 50, 100",
+                exception.getMessage()
+            );
+        }
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void findByCity_allowedSizes_arePassedToRepository() {
+        for (int size : List.of(5, 10, 20, 50, 100)) {
+            PageRequest pageable = PageRequest.of(
+                0,
+                size,
+                Sort.by(
+                    Sort.Order.asc("name"),
+                    Sort.Order.asc("id")
+                )
+            );
+
+            when(repository.findByCityIgnoreCase("Cluj", pageable))
+                .thenReturn(new PageImpl<Accommodation>(
+                    List.of(),
+                    pageable,
+                    0
+                ));
+
+            PageResponse<AccommodationResponse> result =
+                service.findByCity("Cluj", 0, size);
+
+            assertTrue(result.content().isEmpty());
+            assertEquals(0, result.page());
+            assertEquals(size, result.size());
+            assertEquals(0L, result.totalElements());
+            assertEquals(0, result.totalPages());
+
+            verify(repository).findByCityIgnoreCase("Cluj", pageable);
+        }
     }
 }

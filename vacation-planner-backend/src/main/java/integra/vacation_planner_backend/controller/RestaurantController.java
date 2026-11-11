@@ -3,6 +3,10 @@ package integra.vacation_planner_backend.controller;
 import integra.vacation_planner_backend.dto.RestaurantDTO;
 import integra.vacation_planner_backend.service.RestaurantService;
 import integra.vacation_planner_backend.exception.RestaurantServiceException;
+import integra.vacation_planner_backend.dto.PageResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,8 +30,32 @@ public class RestaurantController {
     private final RestaurantService restaurantService;
 
     @GetMapping("/{city}")
-    public List<RestaurantDTO> getRestaurants(@PathVariable String city) {
-        return restaurantService.getRestaurantsByCity(city);
+    @Operation(
+        summary = "Search restaurants by city",
+        description = "Results are sorted by name ascending, then id ascending."
+    )
+    public PageResponse<RestaurantDTO> getRestaurants(
+        @PathVariable String city,
+        @Parameter(
+            description = "Page number, starting at 0",
+            schema = @Schema(
+                type = "integer",
+                minimum = "0",
+                defaultValue = "0"
+            )
+        )
+        @RequestParam(defaultValue = "0") int page,
+        @Parameter(
+            description = "Number of items per page",
+            schema = @Schema(
+                type = "integer",
+                defaultValue = "10",
+                allowableValues = {"5", "10", "20", "50", "100"}
+            )
+        )
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        return restaurantService.getRestaurantsByCity(city, page, size);
     }
 
     @PostMapping()

@@ -8,13 +8,20 @@ import integra.vacation_planner_backend.exception.ValidationException;
 import integra.vacation_planner_backend.domain.Flight;
 import integra.vacation_planner_backend.repository.FlightRepository;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.random.RandomGenerator;
+
+import java.time.ZoneId;
+import java.util.List;
+
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.pagination.Pagination;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class FlightService {
@@ -23,7 +30,10 @@ public class FlightService {
 
     private final RandomGenerator randomGenerator;
 
-    public FlightService(FlightRepository flightRepository, RandomGenerator randomGenerator) {
+    public FlightService(
+        FlightRepository flightRepository,
+        RandomGenerator randomGenerator
+    ) {
         this.flightRepository = flightRepository;
         this.randomGenerator = randomGenerator;
     }
@@ -47,29 +57,49 @@ public class FlightService {
         return flightRepository.save(flight);
     }
 
-    public List<FlightResponse> getFlights(String airportCode) {
+    public PageResponse<FlightResponse> getFlights(
+        String airportCode,
+        int page,
+        int size
+    ) {
         if (airportCode == null || airportCode.isBlank()) {
             throw new ValidationException("Airport code is required");
         }
 
-        List<Flight> flights = flightRepository.findByDepartureAirportCodeOrArrivalAirportCode(
-                airportCode,
-                airportCode
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("departureTime"),
+                Sort.Order.asc("id")
+            )
         );
 
-        return flights.stream()
-                .map(this::toResponse)
-                .toList();
+        Page<FlightResponse> flights = flightRepository
+            .findByDepartureAirportCodeOrArrivalAirportCode(
+                airportCode,
+                airportCode,
+                pageable
+            )
+            .map(this::toResponse);
+
+        return new PageResponse<>(
+            flights.getContent(),
+            flights.getNumber(),
+            flights.getSize(),
+            flights.getTotalElements(),
+            flights.getTotalPages()
+        );
     }
 
     private FlightResponse toResponse(Flight flight) {
         return new FlightResponse(
-                flight.getFlightNumber(),
-                flight.getDepartureAirportCode(),
-                flight.getArrivalAirportCode(),
-                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
-                flight.getPrice()
+            flight.getFlightNumber(),
+            flight.getDepartureAirportCode(),
+            flight.getArrivalAirportCode(),
+            flight.getDepartureTime().atZone(ZoneId.systemDefault()),
+            flight.getArrivalTime().atZone(ZoneId.systemDefault()),
+            flight.getPrice()
         );
     }
 
@@ -105,12 +135,15 @@ public class FlightService {
     private static final int MAX_PERCENT = 10;
 
     public void applyDailyChange() {
-        List<Flight> flights = flightRepository.findByDepartureTimeAfter(Instant.now());
+        List<Flight> flights = flightRepository
+            .findByDepartureTimeAfter(Instant.now());
+
         for (Flight flight : flights) {
             int percent = randomGenerator.nextInt(-MAX_PERCENT, MAX_PERCENT + 1);
 
             BigDecimal factor = BigDecimal.ONE.add(
-                BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100)));
+                BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100))
+            );
 
             BigDecimal newPrice = flight.getPrice()
                 .multiply(factor)
@@ -121,7 +154,6 @@ public class FlightService {
 
         flightRepository.saveAll(flights);
     }
-
 
     private void validateFlight(FlightRequest request) {
         if (request.flightNumber() == null || request.flightNumber().isBlank()) {
@@ -148,7 +180,8 @@ public class FlightService {
             throw new ValidationException("Number of seats must be greater than 0");
         }
 
-        if (request.price() == null || request.price().compareTo(BigDecimal.ZERO) <= 0) {
+        if (request.price() == null
+            || request.price().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ValidationException("Price must be greater than 0");
         }
     }

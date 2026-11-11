@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import integra.vacation_planner_backend.dto.PageResponse;
 
 @WebMvcTest(TripController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -192,19 +193,30 @@ class TripRestaurantControllerTest {
                 LocalTime.of(19, 0)
             );
 
-        when(tripRestaurantService.getRestaurantsForTrip(tripId, "alice"))
-            .thenReturn(List.of(response));
+        when(tripRestaurantService.getRestaurantsForTrip(
+            tripId, "alice", 0, 10
+        )).thenReturn(new PageResponse<>(
+            List.of(response), 0, 10, 1L, 1
+        ));
 
         mockMvc.perform(get("/trips/{tripId}/restaurants", tripId)
                 .param("username", "alice"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value(visitId.toString()))
-            .andExpect(jsonPath("$[0].restaurantId")
+            .andExpect(jsonPath("$.content[0].id").value(visitId.toString()))
+            .andExpect(jsonPath("$.content[0].restaurantId")
                 .value(restaurantId.toString()))
-            .andExpect(jsonPath("$[0].restaurantName")
+            .andExpect(jsonPath("$.content[0].restaurantName")
                 .value("Test Restaurant"))
-            .andExpect(jsonPath("$[0].visitDate").value("2026-06-12"))
-            .andExpect(jsonPath("$[0].visitTime").value("19:00:00"));
+            .andExpect(jsonPath("$.content[0].visitDate").value("2026-06-12"))
+            .andExpect(jsonPath("$.content[0].visitTime").value("19:00:00"))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(10))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(tripRestaurantService).getRestaurantsForTrip(
+            tripId, "alice", 0, 10
+        );
     }
 
     @Test
@@ -212,7 +224,7 @@ class TripRestaurantControllerTest {
         throws Exception {
         UUID tripId = UUID.randomUUID();
 
-        when(tripRestaurantService.getRestaurantsForTrip(tripId, "alice"))
+        when(tripRestaurantService.getRestaurantsForTrip(tripId, "alice", 0, 10))
             .thenThrow(
                 new UnauthorizedTripAccessException("Not your trip")
             );
@@ -227,7 +239,7 @@ class TripRestaurantControllerTest {
         throws Exception {
         UUID tripId = UUID.randomUUID();
 
-        when(tripRestaurantService.getRestaurantsForTrip(tripId, "alice"))
+        when(tripRestaurantService.getRestaurantsForTrip(tripId, "alice", 0, 10))
             .thenThrow(new TripNotFoundException("Trip not found"));
 
         mockMvc.perform(get("/trips/{tripId}/restaurants", tripId)

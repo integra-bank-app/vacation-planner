@@ -9,6 +9,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.dto.RestaurantDTO;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -20,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class RestaurantServiceTest {
@@ -63,12 +70,153 @@ class RestaurantServiceTest {
 
     @Test
     void getRestaurantsByCity() {
-        List<Restaurant> restaurants = new ArrayList<>();
-        Restaurant restaurant = new Restaurant(UUID.randomUUID(), "name", "Cluj", LocalTime.NOON, LocalTime.MIDNIGHT);
-        restaurants.add(restaurant);
+        Restaurant restaurant = new Restaurant(
+            UUID.randomUUID(),
+            "Restaurant Central",
+            "Str. Principala 1, Cluj",
+            LocalTime.NOON,
+            LocalTime.of(22, 0)
+        );
 
-        when(restaurantRepositoryMock.getRestaurantsByAddressLike("Cluj")).thenReturn(restaurants);
-        assertEquals(restaurants, restaurantRepositoryMock.getRestaurantsByAddressLike("Cluj"));
+        PageRequest pageable = PageRequest.of(
+            1,
+            10,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(restaurantRepositoryMock.getRestaurantsByAddressLike(
+            "%Cluj%",
+            pageable
+        )).thenReturn(
+            new PageImpl<>(List.of(restaurant), pageable, 25)
+        );
+
+        PageResponse<RestaurantDTO> result =
+            restaurantService.getRestaurantsByCity("Cluj", 1, 10);
+
+        assertEquals(
+            List.of(new RestaurantDTO(
+                restaurant.getId(),
+                restaurant.getName(),
+                restaurant.getAddress(),
+                restaurant.getOpeningHour(),
+                restaurant.getClosingHour(),
+                5.0
+            )),
+            result.content()
+        );
+        assertEquals(1, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+
+        verify(restaurantRepositoryMock).getRestaurantsByAddressLike(
+            "%Cluj%",
+            pageable
+        );
+    }
+
+    @Test
+    void getRestaurantsByCity_pageBeyondEnd_returnsEmptyContentAndKeepsTotals() {
+        PageRequest pageable = PageRequest.of(
+            3,
+            10,
+            Sort.by(
+                Sort.Order.asc("name"),
+                Sort.Order.asc("id")
+            )
+        );
+
+        when(restaurantRepositoryMock.getRestaurantsByAddressLike(
+            "%Cluj%",
+            pageable
+        )).thenReturn(
+            new PageImpl<Restaurant>(List.of(), pageable, 25)
+        );
+
+        PageResponse<RestaurantDTO> result =
+            restaurantService.getRestaurantsByCity("Cluj", 3, 10);
+
+        assertTrue(result.content().isEmpty());
+        assertEquals(3, result.page());
+        assertEquals(10, result.size());
+        assertEquals(25L, result.totalElements());
+        assertEquals(3, result.totalPages());
+
+        verify(restaurantRepositoryMock).getRestaurantsByAddressLike(
+            "%Cluj%",
+            pageable
+        );
+    }
+
+    @Test
+    void getRestaurantsByCity_negativePage_throwsIllegalArgumentException() {
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> restaurantService.getRestaurantsByCity("Cluj", -1, 10)
+        );
+
+        assertEquals(
+            "page must be greater than or equal to 0",
+            exception.getMessage()
+        );
+
+        verifyNoInteractions(restaurantRepositoryMock);
+    }
+
+    @Test
+    void getRestaurantsByCity_invalidSizes_throwIllegalArgumentException() {
+        for (int size : List.of(-1, 0, 1, 7, 15, 101)) {
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> restaurantService.getRestaurantsByCity("Cluj", 0, size)
+            );
+
+            assertEquals(
+                "size must be one of: 5, 10, 20, 50, 100",
+                exception.getMessage()
+            );
+        }
+
+        verifyNoInteractions(restaurantRepositoryMock);
+    }
+
+    @Test
+    void getRestaurantsByCity_allowedSizes_arePassedToRepository() {
+        for (int size : List.of(5, 10, 20, 50, 100)) {
+            PageRequest pageable = PageRequest.of(
+                0,
+                size,
+                Sort.by(
+                    Sort.Order.asc("name"),
+                    Sort.Order.asc("id")
+                )
+            );
+
+            when(restaurantRepositoryMock.getRestaurantsByAddressLike(
+                "%Cluj%",
+                pageable
+            )).thenReturn(
+                new PageImpl<Restaurant>(List.of(), pageable, 0)
+            );
+
+            PageResponse<RestaurantDTO> result =
+                restaurantService.getRestaurantsByCity("Cluj", 0, size);
+
+            assertTrue(result.content().isEmpty());
+            assertEquals(0, result.page());
+            assertEquals(size, result.size());
+            assertEquals(0L, result.totalElements());
+            assertEquals(0, result.totalPages());
+
+            verify(restaurantRepositoryMock).getRestaurantsByAddressLike(
+                "%Cluj%",
+                pageable
+            );
+        }
     }
 
     @Test

@@ -13,6 +13,11 @@ import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.TripRestaurantRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.pagination.Pagination;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -97,10 +102,21 @@ public class TripRestaurantService {
     }
 
     @Transactional(readOnly = true)
-    public List<TripRestaurantResponseDTO> getRestaurantsForTrip(
+    public PageResponse<TripRestaurantResponseDTO> getRestaurantsForTrip(
         UUID tripId,
-        String username
+        String username,
+        int page,
+        int size
     ) {
+        PageRequest pageable = Pagination.create(
+            page,
+            size,
+            Sort.by(
+                Sort.Order.asc("restaurant.name"),
+                Sort.Order.asc("id")
+            )
+        );
+
         Trip trip = tripRepository.findById(tripId)
             .orElseThrow(() ->
                 new TripNotFoundException("Trip not found: " + tripId));
@@ -111,9 +127,8 @@ public class TripRestaurantService {
             );
         }
 
-        return tripRestaurantRepository
-            .findByTrip_IdOrderByVisitDateAscVisitTimeAsc(tripId)
-            .stream()
+        Page<TripRestaurantResponseDTO> visits = tripRestaurantRepository
+            .findByTrip_Id(tripId, pageable)
             .map(visit -> new TripRestaurantResponseDTO(
                 visit.getId(),
                 visit.getRestaurant().getId(),
@@ -121,8 +136,15 @@ public class TripRestaurantService {
                 visit.getRestaurant().getAddress(),
                 visit.getVisitDate(),
                 visit.getVisitTime()
-            ))
-            .toList();
+            ));
+
+        return new PageResponse<>(
+            visits.getContent(),
+            visits.getNumber(),
+            visits.getSize(),
+            visits.getTotalElements(),
+            visits.getTotalPages()
+        );
     }
 
     @Transactional
