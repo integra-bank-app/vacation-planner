@@ -56,7 +56,7 @@ class TripRestaurantIntegrationTest {
         user.setEmail("aliceAli@yahoo.com");
         user.setFirstName("Alice");
         user.setLastName("Test");
-
+        user.setPassword(new BCryptPasswordEncoder(4).encode("test-password"));
         user = userRepository.saveAndFlush(user);
 
         trip = new Trip();
