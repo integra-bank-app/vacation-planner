@@ -23,3 +23,6 @@
     </div>
   </p-card>
 </div>
+<p-button label="New trip" (onClick)="openCreateTrip()" />
+<app-create-trip-dialog [(visible)]="createTripOpen" />
+<app-create-trip-dialog [(visible)]="createTripOpen" (tripCreated)="onTripCreated($event)" />

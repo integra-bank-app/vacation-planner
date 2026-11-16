@@ -1,0 +1,149 @@
+<p-dialog
+  [header]="title()"
+  [modal]="true"
+  [(visible)]="visible"
+  [style]="{ width: '37.5rem' }"
+  [breakpoints]="{ '640px': '95vw' }"
+  (onHide)="reset()"
+  [closable]="!saving()"
+  [closeOnEscape]="false"
+>
+  <p-stepper [value]="step()" [linear]="true">
+    <p-step-list>
+      @for (s of steps; track s.value) {
+        <p-step [value]="s.value">
+          <ng-template #content>
+            <div class="flex flex-col items-center gap-1">
+              <span
+                class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold"
+                [class]="s.value <= step() ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'"
+              >
+                @if (s.value < step()) {
+                  <i class="pi pi-check"></i>
+                } @else {
+                  {{ s.value }}
+                }
+              </span>
+              <span
+                class="text-xs"
+                [class]="s.value === step() ? 'text-primary font-semibold' : 'text-gray-500'"
+              >
+                {{ s.label }}
+              </span>
+            </div>
+          </ng-template>
+        </p-step>
+      }
+    </p-step-list>
+  </p-stepper>
+
+  @if (step() === 1) {
+    <div class="flex flex-col gap-2 pt-4">
+      <label for="destination" class="font-semibold">Destination</label>
+      <p-iconfield iconPosition="right">
+        <input
+          id="destination"
+          type="text"
+          pInputText
+          class="w-full"
+          placeholder="Where do you want to go?"
+          [(ngModel)]="destination"
+        />
+        <p-inputicon class="pi pi-map-marker" />
+      </p-iconfield>
+    </div>
+    <div class="flex flex-col gap-2 pt-4">
+      <label for="dates" class="font-semibold">Travel dates</label>
+      <p-datepicker
+        inputId="dates"
+        [(ngModel)]="dates"
+        selectionMode="range"
+        dateFormat="M d, yy"
+        rangeSeparator="–"
+        [firstDayOfWeek]="1"
+        [minDate]="minDate"
+        [readonlyInput]="true"
+        [showIcon]="true"
+        iconDisplay="input"
+        appendTo="body"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+        placeholder="Pick your start and end date"
+      />
+    </div>
+    @if (datesValid() && days(); as d) {
+      <p-message severity="info" icon="pi pi-info-circle" styleClass="mt-4">
+        {{ d }} days, {{ d - 1 }} nights. Plenty of room for a little adventure.
+      </p-message>
+    } @else if (dates()?.[1] && !datesValid()) {
+      <small class="mt-2 text-red-600">The end date must be after the start date.</small>
+    }
+  }
+  @if (step() === 2) {
+    <div class="flex flex-col gap-4 pt-4">
+      <div class="flex flex-col gap-3 rounded-lg bg-gray-50 p-4 text-gray-900">
+        <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
+          <i class="pi pi-map-marker text-primary"></i>
+        </span>
+          <div>
+            <div class="text-lg font-semibold">{{ destination().trim() }}</div>
+            <div class="text-sm text-gray-500">A new adventure</div>
+          </div>
+        </div>
+
+        <div class="font-semibold">{{ dateRangeText() }}</div>
+
+        @if (days(); as d) {
+          <div class="text-sm text-gray-500">{{ d }} days · {{ d - 1 }} nights</div>
+        }
+
+        <div><p-tag value="Upcoming" severity="info" /></div>
+      </div>
+
+      <p-message severity="info" icon="pi pi-info-circle">
+        You can add flights, stays and restaurants after creating your trip. Nothing is booked automatically.
+      </p-message>
+      @if (saveError(); as error) {
+        <p-message severity="error" icon="pi pi-times-circle">{{ error }}</p-message>
+      }
+    </div>
+  }
+  @if (step() === 3) {
+    <div class="flex flex-col items-center gap-3 pt-6 text-center">
+      <span class="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+        <i class="pi pi-check text-xl text-green-600"></i>
+      </span>
+      <div class="text-xl font-semibold">Next stop: {{ destination().trim() }}</div>
+      <div class="text-sm text-gray-500">{{ dateRangeText() }} · {{ days() }} days</div>
+      <p-tag value="Upcoming" severity="info" />
+    </div>
+
+    <div class="flex flex-col gap-4 pt-6">
+      <p-message severity="success" icon="pi pi-check-circle">
+        Trip created successfully. Start adding your travel plans to build your itinerary.
+      </p-message>
+
+      <div class="flex items-start gap-3 rounded-lg bg-gray-50 p-4 text-gray-900">
+        <i class="pi pi-wallet mt-1"></i>
+        <div>
+          <div class="font-semibold">Estimated cost: €0</div>
+          <div class="text-sm text-gray-500">Your total updates as you add plans.</div>
+        </div>
+      </div>
+    </div>
+  }
+  <ng-template #footer>
+    @if (step() === 1) {
+      <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="close()" />
+      <p-button label="Next" icon="pi pi-arrow-right" [disabled]="!stepOneValid()" (onClick)="next()" />
+    }
+    @if (step() === 2) {
+      <p-button label="Back" severity="secondary" [outlined]="true" [disabled]="saving()" (onClick)="back()" />
+      <p-button label="Create trip" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (onClick)="submitTrip()" />
+    }
+    @if (step() === 3) {
+      <p-button label="View trip" icon="pi pi-arrow-right" (onClick)="viewTrip()" />
+    }
+  </ng-template>
+</p-dialog>
