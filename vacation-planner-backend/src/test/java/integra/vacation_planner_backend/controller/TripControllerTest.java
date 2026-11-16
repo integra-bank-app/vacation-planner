@@ -27,6 +27,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -60,6 +63,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser
 class TripControllerTest {
 
     private static final LocalDate START = LocalDate.of(2027, 6, 10);
@@ -105,6 +109,7 @@ class TripControllerTest {
     private final List<UUID> createdAccommodationIds = new ArrayList<>();
 
     private final List<UUID> createdUserIds = new ArrayList<>();
+
 
     @BeforeEach
     void createValidUser() {
@@ -977,6 +982,7 @@ class TripControllerTest {
         request.setFlightNumber(flightNumber);
 
         return mockMvc.perform(post("/trips/" + tripId + "/flights")
+            .with(SecurityMockMvcRequestPostProcessors.user("test-user"))
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)));
     }
@@ -1055,6 +1061,7 @@ class TripControllerTest {
         user.setEmail(username + "@test.local");
         user.setFirstName("Test");
         user.setLastName("User");
+        user.setPassword(new BCryptPasswordEncoder(4).encode("test-password"));
         createdUserIds.add(userRepository.save(user).getId());
     }
 

@@ -3,16 +3,24 @@
 
 export type { AccommodationRequest } from './models/accommodation-request';
 export type { AccommodationResponse } from './models/accommodation-response';
+export type { AddFlightToTripRequest } from './models/add-flight-to-trip-request';
 export type { Flight } from './models/flight';
 export type { FlightRequest } from './models/flight-request';
 export type { FlightResponse } from './models/flight-response';
+export type { LoginRequest } from './models/login-request';
+export type { LoginResponse } from './models/login-response';
+export type { PageResponseAccommodationResponse } from './models/page-response-accommodation-response';
+export type { PageResponseFlightResponse } from './models/page-response-flight-response';
+export type { PageResponseRestaurantDto } from './models/page-response-restaurant-dto';
+export type { PageResponseTripAccommodationResponse } from './models/page-response-trip-accommodation-response';
+export type { PageResponseTripResponse } from './models/page-response-trip-response';
+export type { PageResponseTripRestaurantResponseDto } from './models/page-response-trip-restaurant-response-dto';
 export type { RestaurantDto } from './models/restaurant-dto';
-export type { Trip } from './models/trip';
+export type { TripAccommodationRequest } from './models/trip-accommodation-request';
+export type { TripAccommodationResponse } from './models/trip-accommodation-response';
 export type { TripDto } from './models/trip-dto';
-export type { TripResponse } from './models/trip-response';
 export type { TripResponse } from './models/trip-response';
 export type { TripRestaurantRequestDto } from './models/trip-restaurant-request-dto';
 export type { TripRestaurantResponseDto } from './models/trip-restaurant-response-dto';
 export type { UpdatePriceRequest } from './models/update-price-request';
 export type { UserRegisterRequestDto } from './models/user-register-request-dto';
-export type { UserResponseDto } from './models/user-response-dto';

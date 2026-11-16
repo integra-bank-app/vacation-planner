@@ -67,6 +67,7 @@ class TripAccommodationIntegrationTest {
         user.setEmail(username + "@example.com");
         user.setFirstName("Test");
         user.setLastName("User");
+        user.setPassword("password");
         user = userRepository.save(user);
 
         Trip trip = new Trip();
