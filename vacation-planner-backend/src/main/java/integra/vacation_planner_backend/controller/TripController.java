@@ -10,6 +10,7 @@ import integra.vacation_planner_backend.service.TripRestaurantService;
 import integra.vacation_planner_backend.service.TripService;
 import integra.vacation_planner_backend.dto.TripAccommodationRequest;
 import integra.vacation_planner_backend.dto.TripAccommodationResponse;
+import integra.vacation_planner_backend.dto.TripDetailsResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -85,6 +86,19 @@ public class TripController {
             page,
             size
         );
+    }
+
+    @GetMapping("/{tripId}")
+    @Operation(
+        summary = "Get a trip with all its details",
+        description = "Returns the trip, its owner, accommodations, flights, "
+            + "restaurant visits and a timeline with one entry per day."
+    )
+    public TripDetailsResponse getTripDetails(
+        @PathVariable UUID tripId,
+        @RequestParam String username
+    ) {
+        return tripService.getTripDetails(tripId, username);
     }
 
     @PutMapping("/{tripId}")

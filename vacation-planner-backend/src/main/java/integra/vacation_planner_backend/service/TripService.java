@@ -16,6 +16,9 @@ import integra.vacation_planner_backend.exception.UserNotFoundException;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
+import integra.vacation_planner_backend.domain.TripRestaurant;
+import integra.vacation_planner_backend.dto.TripDetailsResponse;
+import java.util.List;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import integra.vacation_planner_backend.dto.PageResponse;
@@ -54,7 +57,7 @@ public class TripService {
         this.userRepository = userRepository;
         this.flightRepository = flightRepository;
     }
-    
+
     public UUID createTrip(TripDTO dto) {
         if (dto.getUsername() == null || dto.getUsername().isBlank()) {
             throw new IllegalArgumentException("username is required");
@@ -401,6 +404,30 @@ public class TripService {
         }
 
         tripRepository.save(trip);
+    }
+
+    @Transactional
+    public TripDetailsResponse getTripDetails(UUID tripId, String username) {
+        Trip trip = tripRepository.findWithOwnerById(tripId)
+            .orElseThrow(() -> new TripNotFoundException("Trip not found"));
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!trip.getUser().getUsername().equals(username)) {
+            throw new UnauthorizedTripAccessException(
+                "User is not authorized to view this trip"
+            );
+        }
+
+        List<Accommodation> accommodations = tripRepository.findAccommodationsOfTrip(tripId);
+        List<Flight> flights = tripRepository.findFlightsOfTrip(tripId);
+        List<TripRestaurant> visits = tripRepository.findVisitsOfTrip(tripId);
+
+        return TripDetailsAssembler.assemble(
+            trip, accommodations, flights, visits, ZoneId.systemDefault()
+        );
     }
 
     private User findUser(String username) {

@@ -1,0 +1,129 @@
+<div class="max-w-6xl mx-auto">
+  <!-- Heading -->
+  <div class="flex flex-row justify-between items-start gap-4 mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">My trips</h1>
+      <p class="text-gray-500">Big adventures, little getaways. Keep every plan together.</p>
+    </div>
+    <!-- Does nothing yet -->
+    <p-button label="New trip" icon="pi pi-plus" />
+  </div>
+
+  @if (errorMessage()) {
+    <!-- Error state -->
+    <div role="alert" class="error-state text-center py-16">
+      <i class="pi pi-exclamation-triangle text-4xl text-red-500"></i>
+      <p class="mt-4 mb-4">{{ errorMessage() }}</p>
+      <p-button label="Try again" severity="secondary" (onClick)="loadTrips()" />
+    </div>
+  } @else if (!loading() && trips().length === 0) {
+    <!-- Empty state: the request worked but the user has no trips -->
+    <div class="empty-state text-center py-16">
+      <i class="pi pi-compass text-5xl text-primary"></i>
+      <h2 class="text-2xl font-bold mt-4">Your next adventure is waiting</h2>
+      <p class="text-gray-500 mt-2 mb-4">
+        You have no trips yet. Create one to start adding flights, stays and restaurants.
+      </p>
+      <!-- Does nothing yet -->
+      <p-button label="Create your first trip" icon="pi pi-plus" />
+    </div>
+  } @else {
+    <!-- Toolbar -->
+    <div class="flex flex-row flex-wrap items-center gap-3 mb-4">
+      <p-iconfield>
+        <p-inputicon class="pi pi-search" />
+        <input
+          pInputText
+          type="text"
+          placeholder="Search destinations"
+          aria-label="Search destinations"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+      </p-iconfield>
+
+      <p-select
+        [options]="statusOptions"
+        [ngModel]="statusFilter()"
+        (ngModelChange)="statusFilter.set($event)"
+        ariaLabel="status"
+      />
+
+      <span class="result-count text-gray-500 ms-auto">{{ resultLabel() }}</span>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      @if (loading()) {
+        @for (item of skeletons; track item) {
+          <p-card class="skeleton-card">
+            <ng-template #header>
+              <div class="flex flex-row justify-between p-4 pb-0">
+                <p-skeleton shape="circle" size="2.5rem" />
+                <p-skeleton width="5rem" height="1.5rem" />
+              </div>
+            </ng-template>
+            <ng-template #title><p-skeleton width="60%" height="1.5rem" /></ng-template>
+            <p-skeleton width="100%" class="mb-2" />
+            <p-skeleton width="80%" class="mb-4" />
+            <div class="flex flex-row justify-between">
+              <p-skeleton width="3rem" /><p-skeleton width="3rem" /><p-skeleton width="3rem" />
+            </div>
+            <ng-template #footer><p-skeleton width="100%" height="2.5rem" /></ng-template>
+          </p-card>
+        }
+      } @else {
+        @for (card of cards(); track card.id) {
+          <p-card class="trip-card">
+            <ng-template #header>
+              <div class="flex flex-row justify-between items-center p-4 pb-0">
+                <!-- Destination icon -->
+                <span class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20">
+                  <i class="pi pi-map-marker"></i>
+                </span>
+                <p-tag
+                  class="status-tag"
+                  [value]="card.status"
+                  [severity]="
+                    card.status === 'Upcoming'
+                      ? 'info'
+                      : card.status === 'Ongoing'
+                        ? 'success'
+                        : 'secondary'
+                  "
+                />
+              </div>
+            </ng-template>
+            <ng-template #title><span class="destination">{{ card.destination }}</span></ng-template>
+            <ng-template #subtitle><span class="country">{{ card.country }}</span></ng-template>
+
+            <p class="date-range">{{ card.dateRange }}</p>
+            <p class="duration text-gray-500">{{ card.duration }}</p>
+
+            <!-- TODO: the backend does not return the linked flights, stays and restaurants
+                 (or their cost) for each trip in the trips list yet. Fill these in when it does. -->
+            <div class="totals flex flex-row justify-between mt-4 text-sm">
+              <span>Flights: 0</span>
+              <span>Stay: 0</span>
+              <span>Restaurants: 0</span>
+              <span class="font-bold">Estimated cost: €0</span>
+            </div>
+
+            <ng-template #footer>
+              <p-button label="View trip" class="view-trip" (onClick)="viewTrip(card.id)" />
+            </ng-template>
+          </p-card>
+        } @empty {
+          <p class="no-matches col-span-full text-center text-gray-500 py-8">
+            No trips match your search.
+          </p>
+        }
+      }
+    </div>
+
+    <p class="disclaimer text-sm text-gray-500 mt-6">
+      Estimates include the flights, stays and restaurant visits added to each trip. Nothing is
+      booked automatically.
+    </p>
+  }
+</div>

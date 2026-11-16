@@ -8,7 +8,7 @@ trim_trailing_whitespace = true
 indent_style = space
 
 [*.java]
-indent_size = 4
+indent_size = 4 #Google cere 2 spatii
 ij_java_class_count_to_use_import_on_demand = 999
 ij_java_names_count_to_use_import_on_demand = 999
 
