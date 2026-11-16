@@ -167,6 +167,17 @@ class UserServiceTest {
             verify(userRepository, never()).save(any());
         }
 
+        @Test
+        void register_shouldThrowInvalidUserData_whenPasswordIsLongerThan72Bytes() {
+            String multiByte = "ă".repeat(40);
+
+            assertThatThrownBy(() -> userService.register(USERNAME, EMAIL, multiByte, FIRST_NAME, LAST_NAME))
+                    .isInstanceOf(InvalidUserDataException.class)
+                    .hasMessage("Password must be between 8 and 72 characters long");
+
+            verify(userRepository, never()).save(any());
+        }
+
         @ParameterizedTest
         @ValueSource(ints = {8, 72})
         void register_shouldAcceptPasswordAtLengthLimits(int length) {

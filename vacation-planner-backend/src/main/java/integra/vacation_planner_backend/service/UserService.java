@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -65,7 +66,8 @@ public class UserService {
 
     private void validatePassword(String password) {
         if (password == null || password.length() < MIN_PASSWORD_LENGTH
-            || password.length() > MAX_PASSWORD_LENGTH) {
+            || password.length() > MAX_PASSWORD_LENGTH
+            || password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_LENGTH) {
             throw new InvalidUserDataException(
                 "Password must be between " + MIN_PASSWORD_LENGTH + " and "
                     + MAX_PASSWORD_LENGTH + " characters long");

@@ -9,12 +9,6 @@ export type { GetTrips$Params as GetTrips$Params } from './fn/trip-controller/ge
 export { getTrips as getTrips } from './fn/trip-controller/get-trips';
 export type { CreateTrip$Params as CreateTrip$Params } from './fn/trip-controller/create-trip';
 export { createTrip as createTrip } from './fn/trip-controller/create-trip';
-export type { GetTripAccommodations$Params as GetTripAccommodations$Params } from './fn/trip-controller/get-trip-accommodations';
-export { getTripAccommodations as getTripAccommodations } from './fn/trip-controller/get-trip-accommodations';
-export type { AddAccommodationToTrip$Params as AddAccommodationToTrip$Params } from './fn/trip-controller/add-accommodation-to-trip';
-export { addAccommodationToTrip as addAccommodationToTrip } from './fn/trip-controller/add-accommodation-to-trip';
-export type { RemoveAccommodationFromTrip$Params as RemoveAccommodationFromTrip$Params } from './fn/trip-controller/remove-accommodation-from-trip';
-export { removeAccommodationFromTrip as removeAccommodationFromTrip } from './fn/trip-controller/remove-accommodation-from-trip';
 export type { GetRestaurantsForTrip$Params as GetRestaurantsForTrip$Params } from './fn/trip-controller/get-restaurants-for-trip';
 export { getRestaurantsForTrip as getRestaurantsForTrip } from './fn/trip-controller/get-restaurants-for-trip';
 export type { AddRestaurantToTrip$Params as AddRestaurantToTrip$Params } from './fn/trip-controller/add-restaurant-to-trip';
@@ -59,5 +53,5 @@ export type { Create$Params as Create$Params } from './fn/accommodation-controll
 export { create as create } from './fn/accommodation-controller/create';
 export type { Register$Params as Register$Params } from './fn/user-controller/register';
 export { register as register } from './fn/user-controller/register';
-export type { Login$Params as Login$Params } from './fn/user-controller/login';
-export { login as login } from './fn/user-controller/login';
+export type { Login$Params as Login$Params } from './fn/auth-controller/login';
+export { login as login } from './fn/auth-controller/login';
