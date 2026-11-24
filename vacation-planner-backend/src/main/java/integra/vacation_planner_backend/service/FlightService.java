@@ -6,6 +6,8 @@ import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.ValidationException;
 import integra.vacation_planner_backend.domain.Flight;
+import integra.vacation_planner_backend.mapper.FlightPageResponseMapper;
+import integra.vacation_planner_backend.mapper.FlightMapper;
 import integra.vacation_planner_backend.repository.FlightRepository;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -13,9 +15,6 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.random.RandomGenerator;
-
-import java.time.ZoneId;
-import java.util.List;
 
 import integra.vacation_planner_backend.dto.PageResponse;
 import integra.vacation_planner_backend.pagination.Pagination;
@@ -30,12 +29,19 @@ public class FlightService {
 
     private final RandomGenerator randomGenerator;
 
+    private final FlightMapper flightMapper;
+
+    private final FlightPageResponseMapper flightPageResponseMapper;
+
     public FlightService(
         FlightRepository flightRepository,
-        RandomGenerator randomGenerator
-    ) {
+        RandomGenerator randomGenerator,
+        FlightMapper flightMapper,
+        FlightPageResponseMapper flightPageResponseMapper) {
         this.flightRepository = flightRepository;
         this.randomGenerator = randomGenerator;
+        this.flightMapper = flightMapper;
+        this.flightPageResponseMapper = flightPageResponseMapper;
     }
 
     public Flight createFlight(FlightRequest request) {
@@ -45,14 +51,7 @@ public class FlightService {
             throw new ConflictException("Flight already exists");
         }
 
-        Flight flight = new Flight();
-        flight.setFlightNumber(request.flightNumber());
-        flight.setDepartureAirportCode(request.departureAirportCode());
-        flight.setArrivalAirportCode(request.arrivalAirportCode());
-        flight.setDepartureTime(request.departureTime());
-        flight.setArrivalTime(request.arrivalTime());
-        flight.setNumberOfSeats(request.numberOfSeats());
-        flight.setPrice(request.price());
+        Flight flight = flightMapper.toFlight(request);
 
         return flightRepository.save(flight);
     }
@@ -81,40 +80,18 @@ public class FlightService {
                 airportCode,
                 pageable
             )
-            .map(this::toResponse);
+            .map(flightMapper::toResponse);
 
-        return new PageResponse<>(
-            flights.getContent(),
-            flights.getNumber(),
-            flights.getSize(),
-            flights.getTotalElements(),
-            flights.getTotalPages()
-        );
-    }
-
-    private FlightResponse toResponse(Flight flight) {
-        return new FlightResponse(
-            flight.getFlightNumber(),
-            flight.getDepartureAirportCode(),
-            flight.getArrivalAirportCode(),
-            flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-            flight.getArrivalTime().atZone(ZoneId.systemDefault()),
-            flight.getPrice()
-        );
+        return flightPageResponseMapper.toPageResponse(flights);
     }
 
     public Flight updateFlight(FlightRequest request) {
         validateFlight(request);
 
-        Flight flight = flightRepository.findByFlightNumber(request.flightNumber())
+        flightRepository.findByFlightNumber(request.flightNumber())
                 .orElseThrow(() -> new NotFoundException("Flight not found"));
 
-        flight.setDepartureAirportCode(request.departureAirportCode());
-        flight.setArrivalAirportCode(request.arrivalAirportCode());
-        flight.setDepartureTime(request.departureTime());
-        flight.setArrivalTime(request.arrivalTime());
-        flight.setNumberOfSeats(request.numberOfSeats());
-        flight.setPrice(request.price());
+        Flight flight = flightMapper.toFlight(request);
 
         return flightRepository.save(flight);
     }

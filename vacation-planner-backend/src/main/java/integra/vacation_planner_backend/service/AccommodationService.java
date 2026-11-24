@@ -1,6 +1,8 @@
 package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.dto.PageResponse;
+import integra.vacation_planner_backend.mapper.AccommodationMapper;
+import integra.vacation_planner_backend.mapper.AccommodationPageResponseMapper;
 import integra.vacation_planner_backend.pagination.Pagination;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,20 +22,21 @@ public class AccommodationService {
 
     private final AccommodationRepository repository;
 
-    public AccommodationService(AccommodationRepository repository) {
+    private final AccommodationMapper accommodationMapper;
+
+    private final AccommodationPageResponseMapper accommodationPageResponseMapper;
+
+    public AccommodationService(AccommodationRepository repository, AccommodationMapper accommodationMapper, AccommodationPageResponseMapper accommodationPageResponseMapper) {
         this.repository = repository;
+        this.accommodationMapper = accommodationMapper;
+        this.accommodationPageResponseMapper = accommodationPageResponseMapper;
     }
 
     public UUID create(AccommodationRequest request) {
 
         validatePrice(request.pricePerNight());
 
-        Accommodation accommodation = new Accommodation(
-                request.name(),
-                request.pricePerNight(),
-                request.address(),
-                request.city()
-        );
+        Accommodation accommodation = accommodationMapper.toAccommodation(request);
 
         Accommodation saved = repository.save(accommodation);
 
@@ -79,19 +82,9 @@ public class AccommodationService {
 
         Page<AccommodationResponse> accommodations = repository
             .findByCityIgnoreCase(city, pageable)
-            .map(accommodation -> new AccommodationResponse(
-                accommodation.getId(),
-                accommodation.getName(),
-                accommodation.getPricePerNight()
-            ));
+            .map(accommodationMapper::toResponse);
 
-        return new PageResponse<>(
-            accommodations.getContent(),
-            accommodations.getNumber(),
-            accommodations.getSize(),
-            accommodations.getTotalElements(),
-            accommodations.getTotalPages()
-        );
+        return accommodationPageResponseMapper.toPageResponse(accommodations);
     }
 
     private void validatePrice(BigDecimal price) {

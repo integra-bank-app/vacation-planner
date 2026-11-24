@@ -8,6 +8,8 @@ import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.mapper.TripMapper;
+import integra.vacation_planner_backend.mapper.TripRestaurantPageResponseMapper;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.TripRestaurantRepository;
@@ -33,14 +35,20 @@ public class TripRestaurantService {
 
     private final RestaurantRepository restaurantRepository;
 
+    private final TripMapper tripMapper;
+
+    private final TripRestaurantPageResponseMapper tripRestaurantPageResponseMapper;
+
     public TripRestaurantService(
         TripRestaurantRepository tripRestaurantRepository,
         TripRepository tripRepository,
-        RestaurantRepository restaurantRepository
-    ) {
+        RestaurantRepository restaurantRepository,
+        TripMapper tripMapper, TripRestaurantPageResponseMapper tripRestaurantPageResponseMapper) {
         this.tripRestaurantRepository = tripRestaurantRepository;
         this.tripRepository = tripRepository;
         this.restaurantRepository = restaurantRepository;
+        this.tripMapper = tripMapper;
+        this.tripRestaurantPageResponseMapper = tripRestaurantPageResponseMapper;
     }
 
     @Transactional
@@ -129,22 +137,9 @@ public class TripRestaurantService {
 
         Page<TripRestaurantResponseDTO> visits = tripRestaurantRepository
             .findByTrip_Id(tripId, pageable)
-            .map(visit -> new TripRestaurantResponseDTO(
-                visit.getId(),
-                visit.getRestaurant().getId(),
-                visit.getRestaurant().getName(),
-                visit.getRestaurant().getAddress(),
-                visit.getVisitDate(),
-                visit.getVisitTime()
-            ));
+            .map(tripMapper::toResturantResponse);
 
-        return new PageResponse<>(
-            visits.getContent(),
-            visits.getNumber(),
-            visits.getSize(),
-            visits.getTotalElements(),
-            visits.getTotalPages()
-        );
+        return tripRestaurantPageResponseMapper.toPageResponse(visits);
     }
 
     @Transactional
