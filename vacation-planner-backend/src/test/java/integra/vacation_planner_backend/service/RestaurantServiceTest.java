@@ -2,11 +2,14 @@ package integra.vacation_planner_backend.service;
 
 import integra.vacation_planner_backend.domain.Restaurant;
 import integra.vacation_planner_backend.exception.RestaurantServiceException;
+import integra.vacation_planner_backend.mapper.RestaurantMapper;
+import integra.vacation_planner_backend.mapper.RestaurantPageResponseMapper;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import integra.vacation_planner_backend.dto.PageResponse;
@@ -33,8 +36,14 @@ class RestaurantServiceTest {
     @Mock
     private RestaurantRepository restaurantRepositoryMock;
 
-    @InjectMocks
-    private RestaurantService restaurantService;
+    private static RestaurantService restaurantService;
+
+    @BeforeEach
+    void initializeRestaurantService() {
+        RestaurantMapper restaurantMapper = Mappers.getMapper(RestaurantMapper.class);
+        RestaurantPageResponseMapper restaurantPageResponseMapper = Mappers.getMapper(RestaurantPageResponseMapper.class);
+        restaurantService = new RestaurantService(restaurantRepositoryMock, restaurantMapper, restaurantPageResponseMapper);
+    }
 
     @Test
     void createRestaurant() {

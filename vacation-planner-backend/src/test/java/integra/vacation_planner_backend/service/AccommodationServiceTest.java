@@ -4,11 +4,13 @@ import integra.vacation_planner_backend.dto.AccommodationRequest;
 import integra.vacation_planner_backend.dto.AccommodationResponse;
 import integra.vacation_planner_backend.domain.Accommodation;
 import integra.vacation_planner_backend.exception.AccommodationNotFoundException;
+import integra.vacation_planner_backend.mapper.AccommodationMapper;
+import integra.vacation_planner_backend.mapper.AccommodationPageResponseMapper;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import integra.vacation_planner_backend.dto.PageResponse;
@@ -36,13 +38,14 @@ class AccommodationServiceTest {
     @Mock
     private AccommodationRepository repository;
 
-    @InjectMocks
     private AccommodationService service;
 
     private UUID accommodationId;
 
     @BeforeEach
     void setUp() {
+        service = new AccommodationService(repository, Mappers.getMapper(AccommodationMapper.class),
+            Mappers.getMapper(AccommodationPageResponseMapper.class));
         accommodationId = UUID.randomUUID();
     }
 

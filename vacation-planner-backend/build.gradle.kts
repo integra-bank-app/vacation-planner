@@ -36,6 +36,9 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok")
     testRuntimeOnly("com.h2database:h2")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 }
 
 tasks.withType<Test> {

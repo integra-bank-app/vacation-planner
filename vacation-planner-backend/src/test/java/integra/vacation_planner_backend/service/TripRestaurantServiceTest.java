@@ -10,10 +10,15 @@ import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
+import integra.vacation_planner_backend.mapper.TripMapper;
+import integra.vacation_planner_backend.mapper.TripPageResponseMapper;
+import integra.vacation_planner_backend.mapper.TripRestaurantPageResponseMapper;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.TripRestaurantRepository;
 import integra.vacation_planner_backend.dto.PageResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.mapstruct.factory.Mappers;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -52,6 +57,12 @@ class TripRestaurantServiceTest {
 
     @InjectMocks
     private TripRestaurantService tripRestaurantService;
+
+    @BeforeEach
+    void initializeTripRestaurantService() {
+        tripRestaurantService = new TripRestaurantService(tripRestaurantRepository, tripRepository, restaurantRepository,
+            Mappers.getMapper(TripMapper.class), Mappers.getMapper(TripRestaurantPageResponseMapper.class));
+    }
 
     @Test
     void addRestaurantToTrip_shouldThrow_whenTripDoesNotExist() {

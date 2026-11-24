@@ -3,6 +3,8 @@ package integra.vacation_planner_backend.service;
 import integra.vacation_planner_backend.dto.RestaurantDTO;
 import integra.vacation_planner_backend.domain.Restaurant;
 import integra.vacation_planner_backend.exception.RestaurantServiceException;
+import integra.vacation_planner_backend.mapper.RestaurantMapper;
+import integra.vacation_planner_backend.mapper.RestaurantPageResponseMapper;
 import integra.vacation_planner_backend.repository.RestaurantRepository;
 import integra.vacation_planner_backend.validator.RestaurantValidator;
 import integra.vacation_planner_backend.dto.PageResponse;
@@ -22,6 +24,10 @@ import java.util.UUID;
 public class RestaurantService {
 
     private RestaurantRepository restaurantRepository;
+
+    private RestaurantMapper restaurantMapper;
+
+    private RestaurantPageResponseMapper restaurantPageResponseMapper;
 
     public UUID createRestaurant(String name, String address, LocalTime openingHour, LocalTime closingHour) {
         UUID id = UUID.randomUUID();
@@ -54,22 +60,9 @@ public class RestaurantService {
 
         Page<RestaurantDTO> restaurants = restaurantRepository
             .getRestaurantsByAddressLike(query, pageable)
-            .map(it -> new RestaurantDTO(
-                it.getId(),
-                it.getName(),
-                it.getAddress(),
-                it.getOpeningHour(),
-                it.getClosingHour(),
-                5.0
-            ));
+            .map(it -> restaurantMapper.toDTO(it));
 
-        return new PageResponse<>(
-            restaurants.getContent(),
-            restaurants.getNumber(),
-            restaurants.getSize(),
-            restaurants.getTotalElements(),
-            restaurants.getTotalPages()
-        );
+        return restaurantPageResponseMapper.toPageResponse(restaurants);
     }
 
     public void updateRestaurant(UUID id, String address, LocalTime openingHour, LocalTime closingHour) {

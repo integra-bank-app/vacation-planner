@@ -13,6 +13,11 @@ import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.TripNotFoundException;
 import integra.vacation_planner_backend.exception.UnauthorizedTripAccessException;
 import integra.vacation_planner_backend.exception.UserNotFoundException;
+import integra.vacation_planner_backend.mapper.FlightMapper;
+import integra.vacation_planner_backend.mapper.FlightPageResponseMapper;
+import integra.vacation_planner_backend.mapper.TripAccommodationPageResponseMapper;
+import integra.vacation_planner_backend.mapper.TripMapper;
+import integra.vacation_planner_backend.mapper.TripPageResponseMapper;
 import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
@@ -43,18 +48,33 @@ public class TripService {
 
     private final FlightRepository flightRepository;
 
+    private final TripMapper tripMapper;
+
+    private final TripPageResponseMapper tripPageResponseMapper;
+
+    private final TripAccommodationPageResponseMapper tripAccommodationPageResponseMapper;
+
+    private final FlightMapper flightMapper;
+
+    private final FlightPageResponseMapper flightPageResponseMapper;
+
     public TripService(
         TripRepository tripRepository,
         AccommodationRepository accommodationRepository,
         UserRepository userRepository,
-        FlightRepository flightRepository
-    ) {
+        FlightRepository flightRepository,
+        TripMapper tripMapper, TripPageResponseMapper tripPageResponseMapper, TripAccommodationPageResponseMapper tripAccommodationPageResponseMapper, FlightMapper flightMapper, FlightPageResponseMapper flightPageResponseMapper) {
         this.tripRepository = tripRepository;
         this.accommodationRepository = accommodationRepository;
         this.userRepository = userRepository;
         this.flightRepository = flightRepository;
+        this.tripMapper = tripMapper;
+        this.tripPageResponseMapper = tripPageResponseMapper;
+        this.tripAccommodationPageResponseMapper = tripAccommodationPageResponseMapper;
+        this.flightMapper = flightMapper;
+        this.flightPageResponseMapper = flightPageResponseMapper;
     }
-    
+
     public UUID createTrip(TripDTO dto) {
         if (dto.getUsername() == null || dto.getUsername().isBlank()) {
             throw new IllegalArgumentException("username is required");
@@ -116,21 +136,9 @@ public class TripService {
                 endDate,
                 pageable
             )
-            .map(trip -> new TripResponse(
-                trip.getId(),
-                user.getUsername(),
-                trip.getDestination(),
-                trip.getStartDate(),
-                trip.getEndDate()
-            ));
+            .map(tripMapper::toResponse);
 
-        return new PageResponse<>(
-            trips.getContent(),
-            trips.getNumber(),
-            trips.getSize(),
-            trips.getTotalElements(),
-            trips.getTotalPages()
-        );
+        return tripPageResponseMapper.toPageResponse(trips);
     }
 
     @Transactional
@@ -232,21 +240,9 @@ public class TripService {
 
         Page<TripAccommodationResponse> accommodations = accommodationRepository
             .findByTrips_Id(tripId, pageable)
-            .map(accommodation -> new TripAccommodationResponse(
-                accommodation.getId(),
-                accommodation.getName(),
-                accommodation.getAddress(),
-                accommodation.getCity(),
-                accommodation.getPricePerNight()
-            ));
+            .map(tripMapper::toAccommodationResponse);
 
-        return new PageResponse<>(
-            accommodations.getContent(),
-            accommodations.getNumber(),
-            accommodations.getSize(),
-            accommodations.getTotalElements(),
-            accommodations.getTotalPages()
-        );
+        return tripAccommodationPageResponseMapper.toPageResponse(accommodations);
     }
 
     @Transactional
@@ -348,22 +344,9 @@ public class TripService {
 
         Page<FlightResponse> flights = flightRepository
             .findFlightsByTripId(tripId, pageable)
-            .map(flight -> new FlightResponse(
-                flight.getFlightNumber(),
-                flight.getDepartureAirportCode(),
-                flight.getArrivalAirportCode(),
-                flight.getDepartureTime().atZone(ZoneId.systemDefault()),
-                flight.getArrivalTime().atZone(ZoneId.systemDefault()),
-                flight.getPrice()
-            ));
+            .map(flightMapper::toResponse);
 
-        return new PageResponse<>(
-            flights.getContent(),
-            flights.getNumber(),
-            flights.getSize(),
-            flights.getTotalElements(),
-            flights.getTotalPages()
-        );
+        return flightPageResponseMapper.toPageResponse(flights);
     }
 
     @Transactional

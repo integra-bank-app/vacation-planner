@@ -10,6 +10,11 @@ import integra.vacation_planner_backend.dto.FlightResponse;
 import integra.vacation_planner_backend.dto.TripDTO;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
+import integra.vacation_planner_backend.mapper.FlightMapper;
+import integra.vacation_planner_backend.mapper.FlightPageResponseMapper;
+import integra.vacation_planner_backend.mapper.TripAccommodationPageResponseMapper;
+import integra.vacation_planner_backend.mapper.TripMapper;
+import integra.vacation_planner_backend.mapper.TripPageResponseMapper;
 import integra.vacation_planner_backend.repository.FlightRepository;
 import integra.vacation_planner_backend.repository.TripRepository;
 import integra.vacation_planner_backend.dto.TripResponse;
@@ -21,6 +26,7 @@ import integra.vacation_planner_backend.repository.AccommodationRepository;
 import integra.vacation_planner_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import integra.vacation_planner_backend.dto.PageResponse;
 import org.springframework.data.domain.PageImpl;
@@ -74,7 +80,12 @@ public class TripServiceTest {
             tripRepository,
             accommodationRepository,
             userRepository,
-            flightRepository
+            flightRepository,
+            Mappers.getMapper(TripMapper.class),
+            Mappers.getMapper(TripPageResponseMapper.class),
+            Mappers.getMapper(TripAccommodationPageResponseMapper.class),
+            Mappers.getMapper(FlightMapper.class),
+            Mappers.getMapper(FlightPageResponseMapper.class)
         );
 
         bob = new User();

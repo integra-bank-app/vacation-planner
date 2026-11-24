@@ -7,9 +7,13 @@ import integra.vacation_planner_backend.dto.PageResponse;
 import integra.vacation_planner_backend.exception.ConflictException;
 import integra.vacation_planner_backend.exception.NotFoundException;
 import integra.vacation_planner_backend.exception.ValidationException;
+import integra.vacation_planner_backend.mapper.FlightPageResponseMapper;
+import integra.vacation_planner_backend.mapper.FlightMapper;
 import integra.vacation_planner_backend.repository.FlightRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -23,20 +27,17 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.random.RandomGenerator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -54,6 +55,13 @@ class FlightServiceTest {
 
     @Mock
     private RandomGenerator randomGenerator;
+
+    @BeforeEach
+    void initializeFlightService() {
+        flightService = new FlightService(flightRepository, randomGenerator,
+            Mappers.getMapper(FlightMapper.class),
+            Mappers.getMapper(FlightPageResponseMapper.class));
+    }
 
     @Test
     void createFlight_validRequest_savesFlight() {
